@@ -1,0 +1,26 @@
+# 本地签名（勿提交）
+keystore.properties
+*.keystore
+*.jks
+tools/cato-root-ca.cer
+*.pdf
+
+# Gradle / Android Studio
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+
+# Gradle wrapper 下载缓存（勿提交）
+wrapper/dists/
+caches/
+daemon/
+native/
+android/FakeDependency.jar
+
+# 构建报告
+**/build/reports/
+**/outputs/mapping/

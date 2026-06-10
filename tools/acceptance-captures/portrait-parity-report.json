@@ -1,0 +1,42 @@
+{
+  "time": "2026-06-01T08:48:55.402Z",
+  "metrics": {
+    "general": "赵云",
+    "bar": {
+      "backing": 128,
+      "cssW": 64,
+      "cssH": 64,
+      "styleW": "64px",
+      "styleH": "64px",
+      "centerRgb": [
+        88,
+        55,
+        43
+      ],
+      "cornerRgb": [
+        0,
+        0,
+        0
+      ]
+    },
+    "tp": {
+      "backing": 96,
+      "cssW": 48,
+      "cssH": 48,
+      "styleW": "48px",
+      "styleH": "48px",
+      "centerRgb": [
+        90,
+        56,
+        44
+      ],
+      "cornerRgb": [
+        0,
+        0,
+        0
+      ]
+    },
+    "centerColorDist": 4,
+    "pass": true
+  }
+}

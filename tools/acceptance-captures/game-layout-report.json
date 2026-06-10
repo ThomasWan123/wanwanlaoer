@@ -1,0 +1,22 @@
+{
+  "time": "2026-06-02T00:46:26.534Z",
+  "metrics": {
+    "viewportH": 411,
+    "gameScreen": {
+      "height": 411,
+      "bottom": 411,
+      "position": "absolute"
+    },
+    "stage": {
+      "height": 411,
+      "bottom": 411
+    },
+    "canvas": {
+      "height": 411,
+      "bottom": 411
+    },
+    "fillRatio": 100,
+    "stageRatio": 100,
+    "pass": true
+  }
+}

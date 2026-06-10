@@ -1,0 +1,44 @@
+diff --git a/app/src/main/assets/www/js/main.js b/app/src/main/assets/www/js/main.js
+index 1111111..2222222 100644
+--- a/app/src/main/assets/www/js/main.js
++++ b/app/src/main/assets/www/js/main.js
+@@
+ window.Main = {
+     currentLevel: 0,
+     lastT: 0,
++    _themeClass: "",
+@@
+     startGame(idx) {
+         this.currentLevel = idx;
+         UI.show("game-screen");
+@@
+-        Game.loadLevel(LEVELS[idx]);
++        const lv = LEVELS[idx];
++        // 应用关卡主题（仅影响 UI 视觉，不改玩法/数值）
++        if (this._themeClass) document.body.classList.remove(this._themeClass);
++        this._themeClass = (lv && lv.uiTheme) ? lv.uiTheme : "";
++        if (this._themeClass) document.body.classList.add(this._themeClass);
++
++        Game.loadLevel(lv);
+@@
+-        UI.showBanner(LEVELS[idx].name, 1600);
++        UI.showBanner(lv.name, 1600);
+     },
+ };
+
+diff --git a/app/src/main/assets/www/js/ui.js b/app/src/main/assets/www/js/ui.js
+index 3333333..4444444 100644
+--- a/app/src/main/assets/www/js/ui.js
++++ b/app/src/main/assets/www/js/ui.js
+@@
+     show(name) {
+         document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+         const el = document.getElementById(name);
+         if (el) el.classList.add("active");
++        // 离开游戏屏时移除关卡主题（避免影响主菜单/图鉴）
++        if (name !== "game-screen") {
++            ["lv-theme-hulu", "lv-theme-chang", "lv-theme-chibi", "lv-theme-snow", "lv-theme-city"]
++                .forEach(c => document.body.classList.remove(c));
++            if (window.Main) Main._themeClass = "";
++        }
+     },

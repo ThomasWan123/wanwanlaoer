@@ -1,0 +1,41 @@
+{
+  "pass": true,
+  "notes": [
+    {
+      "kind": "flood",
+      "result": "flood:2",
+      "ok": true,
+      "shot": "C:\\GT-123\\game\\AndroidVer\\tools\\ult-vfx-captures\\flood.png"
+    },
+    {
+      "kind": "blaze",
+      "result": "blaze:2",
+      "ok": true,
+      "shot": "C:\\GT-123\\game\\AndroidVer\\tools\\ult-vfx-captures\\blaze.png"
+    },
+    {
+      "kind": "stun",
+      "result": "stun:2",
+      "ok": true,
+      "shot": "C:\\GT-123\\game\\AndroidVer\\tools\\ult-vfx-captures\\stun.png"
+    },
+    {
+      "kind": "maze",
+      "result": "maze:2",
+      "ok": true,
+      "shot": "C:\\GT-123\\game\\AndroidVer\\tools\\ult-vfx-captures\\maze.png"
+    },
+    {
+      "kind": "execute",
+      "result": "execute:1",
+      "ok": true,
+      "shot": "C:\\GT-123\\game\\AndroidVer\\tools\\ult-vfx-captures\\execute.png"
+    },
+    {
+      "kind": "charge",
+      "result": "charge:2",
+      "ok": true,
+      "shot": "C:\\GT-123\\game\\AndroidVer\\tools\\ult-vfx-captures\\charge.png"
+    }
+  ]
+}

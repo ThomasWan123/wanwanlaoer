@@ -1,0 +1,118 @@
+plugins {
+    id 'com.android.application'
+}
+
+// 正式上架：复制 keystore.properties.example → keystore.properties 并填写 release 密钥库
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+configurations.configureEach {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+android {
+    namespace 'com.sanguotd'
+    compileSdk 35
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    defaultConfig {
+        applicationId "com.sanguotd.towerdefense2"
+        minSdk 21
+        targetSdk 35
+        versionCode 8
+        versionName "2.0.1"
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+            }
+        }
+    }
+
+    // Debug / Release 共用 src/main（含 assets/www），游戏逻辑一致。
+    // 唯一有意差异：debug 可 WebView 远程调试；release 经 R8 压缩原生壳。
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // 无 keystore.properties 时用 debug 证书签名，便于真机安装测试（非上架包）
+            signingConfig keystorePropertiesFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+}
+
+/** 校验 debug / release 包内 assets/www 完全一致（防止误建 src/debug|release/assets） */
+tasks.register('verifyApkAssetsParity') {
+    group = 'verification'
+    description = 'Fail if debug and release APKs differ under assets/www/'
+    dependsOn 'assembleDebug', 'assembleRelease'
+    doLast {
+        def out = layout.buildDirectory.get().asFile
+        File debugApk = new File(out, 'outputs/apk/debug/app-debug.apk')
+        File releaseApk = new File(out, 'outputs/apk/release/app-release.apk')
+        if (!releaseApk.isFile()) {
+            releaseApk = new File(out, 'outputs/apk/release/app-release-unsigned.apk')
+        }
+        if (!debugApk.isFile() || !releaseApk.isFile()) {
+            throw new GradleException('Missing APK output; expected app-debug.apk and app-release.apk')
+        }
+        def d = extractWwwHashes(debugApk)
+        def r = extractWwwHashes(releaseApk)
+        def all = (d.keySet() + r.keySet()).unique().sort()
+        def errors = []
+        all.each { path ->
+            if (!d.containsKey(path)) errors << "only in release: ${path}"
+            else if (!r.containsKey(path)) errors << "only in debug: ${path}"
+            else if (d[path] != r[path]) errors << "hash mismatch: ${path}"
+        }
+        if (!errors.isEmpty()) {
+            throw new GradleException('Debug/Release www assets out of sync:\n' + errors.join('\n'))
+        }
+        logger.lifecycle("verifyApkAssetsParity: OK (${d.size()} files under assets/www/)")
+    }
+}
+
+static Map<String, String> extractWwwHashes(File apk) {
+    def map = [:]
+    new java.util.zip.ZipFile(apk).withCloseable { zip ->
+        zip.entries().each { e ->
+            if (e.name.startsWith('assets/www/') && !e.directory) {
+                def md = java.security.MessageDigest.getInstance('SHA-256')
+                zip.getInputStream(e).withCloseable { InputStream is ->
+                    byte[] buf = new byte[8192]
+                    int n
+                    while ((n = is.read(buf)) > 0) md.update(buf, 0, n)
+                }
+                map[e.name] = md.digest().collect { String.format('%02x', (int) it & 0xff) }.join('')
+            }
+        }
+    }
+    return map
+}

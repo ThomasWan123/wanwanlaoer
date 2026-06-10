@@ -1,0 +1,79 @@
+{
+  "time": "2026-06-10T05:43:17.385Z",
+  "metrics": {
+    "levelName": "小沛据守",
+    "mapTheme": "central_plain",
+    "mapLoaded": true,
+    "layoutMode": "fill-pan",
+    "ultraWide": true,
+    "zoom": 0.8999999999999999,
+    "minZoom": 0.9,
+    "pathCenteredInWorld": true,
+    "pathCy": 316,
+    "pathAllVisibleAtMinZoom": true,
+    "slotsAllVisibleAtMinZoom": true,
+    "pathEndsVisibleAtMinZoom": true,
+    "pathPoints": 20,
+    "slotCount": 9,
+    "pan": {
+      "x": 0,
+      "y": 87.12698109944662
+    },
+    "viewFrame": {
+      "vw": 1067,
+      "vh": 457
+    },
+    "viewFrameAtMin": {
+      "vw": 1067,
+      "vh": 457
+    },
+    "pathMidScreenRatio": 0.5,
+    "pathCenterScreenRatio": 0.5,
+    "playfieldFocusY": 0.5,
+    "pathCenterDelta": 0,
+    "canvas": {
+      "w": 960,
+      "h": 411
+    },
+    "samples": {
+      "start": {
+        "wx": 0,
+        "wy": 402,
+        "nx": 0,
+        "ny": 283,
+        "rgb": [
+          92,
+          56,
+          33
+        ],
+        "dark": false
+      },
+      "pathMid": {
+        "wx": 637,
+        "wy": 314,
+        "nx": 573,
+        "ny": 204,
+        "rgb": [
+          163,
+          133,
+          85
+        ],
+        "dark": false
+      },
+      "slot0": {
+        "wx": 50,
+        "wy": 344,
+        "nx": 45,
+        "ny": 231,
+        "rgb": [
+          247,
+          215,
+          116
+        ],
+        "dark": false
+      }
+    },
+    "panMoved": true,
+    "pass": true
+  }
+}

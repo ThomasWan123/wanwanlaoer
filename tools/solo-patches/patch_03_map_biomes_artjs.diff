@@ -1,0 +1,356 @@
+diff --git a/app/src/main/assets/www/js/art.js b/app/src/main/assets/www/js/art.js
+index 7777777..8888888 100644
+--- a/app/src/main/assets/www/js/art.js
++++ b/app/src/main/assets/www/js/art.js
+@@
+     // ============ 路径地图 ============
+     drawMap(ctx, level) {
+         const W = ctx.canvas.width, H = ctx.canvas.height;
+ 
+-        // 大地（暖色背景，模拟黄土战场）
+-        const grd = ctx.createLinearGradient(0, 0, 0, H);
+-        grd.addColorStop(0, "#3d2a14");
+-        grd.addColorStop(1, "#1a0f06");
+-        ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+-
+-        // 草丛 / 山影点缀
+-        for (let i = 0; i < 60; i++) {
+-            const x = (i * 137) % W, y = (i * 73 + 37) % H;
+-            ctx.fillStyle = "rgba(80,50,20,.5)";
+-            ctx.beginPath(); ctx.arc(x, y, 18 + (i % 5) * 4, 0, Math.PI * 2); ctx.fill();
+-        }
+-        for (let i = 0; i < 40; i++) {
+-            const x = (i * 211 + 60) % W, y = (i * 97 + 17) % H;
+-            ctx.fillStyle = "rgba(60,90,40,.45)";
+-            ctx.beginPath(); ctx.arc(x, y, 6 + (i % 3) * 2, 0, Math.PI * 2); ctx.fill();
+-        }
++        // === Map theme (仅视觉) ===
++        const key = (level && level.uiTheme) ? level.uiTheme : "default";
++        const theme = (Art.MAP_THEMES && Art.MAP_THEMES[key]) ? Art.MAP_THEMES[key] : Art.MAP_THEMES.default;
++
++        // Base ground
++        const grd = ctx.createLinearGradient(0, 0, 0, H);
++        grd.addColorStop(0, theme.groundTop);
++        grd.addColorStop(1, theme.groundBottom);
++        ctx.fillStyle = grd;
++        ctx.fillRect(0, 0, W, H);
++
++        // Subtle surface texture (kept low-contrast for readability)
++        Art._terrainNoise(ctx, W, H, theme);
++
++        // Biome features
++        if (theme.features && theme.features.includes("hills")) {
++            Art._drawHills(ctx, W, H, theme);
++        }
++        if (theme.features && theme.features.includes("river")) {
++            Art._drawRiver(ctx, W, H, theme);
++        }
++        if (theme.features && theme.features.includes("snow")) {
++            Art._drawSnowPatches(ctx, W, H, theme);
++        }
++        if (theme.features && theme.features.includes("scorch")) {
++            Art._drawScorch(ctx, W, H, theme);
++        }
+ 
+         // 路径（夯土路 + 边缘）
+         ctx.lineCap = "round"; ctx.lineJoin = "round";
+-        ctx.strokeStyle = "#5a3a1a";
++        ctx.strokeStyle = theme.pathEdge;
+         ctx.lineWidth = 56;
+         ctx.beginPath();
+         for (let i = 0; i < level.path.length; i++) {
+             const p = level.path[i];
+             if (i === 0) ctx.moveTo(p.x, p.y);
+             else ctx.lineTo(p.x, p.y);
+         }
+         ctx.stroke();
+-        ctx.strokeStyle = "#7a4f1c";
++        ctx.strokeStyle = theme.pathMid;
+         ctx.lineWidth = 48;
+         ctx.stroke();
+-        ctx.strokeStyle = "#a0742e";
++        ctx.strokeStyle = theme.pathCore;
+         ctx.lineWidth = 40;
+         ctx.stroke();
+ 
+         // 路径上的虚线指示行进方向
+         ctx.setLineDash([6, 12]);
+-        ctx.strokeStyle = "rgba(255,220,150,.25)";
++        ctx.strokeStyle = theme.pathDash;
+         ctx.lineWidth = 2;
+         ctx.beginPath();
+         for (let i = 0; i < level.path.length; i++) {
+             const p = level.path[i];
+             if (i === 0) ctx.moveTo(p.x, p.y);
+             else ctx.lineTo(p.x, p.y);
+         }
+         ctx.stroke();
+         ctx.setLineDash([]);
+ 
+         // 起点 / 终点标记
+         const start = level.path[0];
+         const end = level.path[level.path.length - 1];
+         // 起点：营帐
+-        ctx.fillStyle = "#aa2a2a";
++        ctx.fillStyle = theme.startBanner;
+         ctx.beginPath();
+         ctx.moveTo(start.x - 28, start.y + 20);
+         ctx.lineTo(start.x, start.y - 24);
+         ctx.lineTo(start.x + 28, start.y + 20);
+         ctx.closePath(); ctx.fill();
+-        ctx.fillStyle = "#f7d774";
++        ctx.fillStyle = theme.textOnMap;
+         ctx.font = "bold 14px serif"; ctx.textAlign = "center";
+         ctx.fillText("敌", start.x, start.y - 4);
+-        // 终点：皇城
+-        ctx.fillStyle = "#c9892b";
+-        ctx.fillRect(end.x - 32, end.y - 26, 64, 52);
+-        ctx.fillStyle = "#7a4d12";
+-        ctx.fillRect(end.x - 32, end.y - 26, 64, 8);
+-        // 城垛
+-        ctx.fillStyle = "#c9892b";
+-        for (let i = -3; i <= 2; i++) {
+-            ctx.fillRect(end.x + i * 10 + 2, end.y - 34, 6, 8);
+-        }
+-        ctx.fillStyle = "#1a0f06";
+-        ctx.fillRect(end.x - 8, end.y - 6, 16, 32);
+-        ctx.fillStyle = "#f7d774";
+-        ctx.font = "bold 12px serif";
+-        ctx.fillText("皇", end.x, end.y + 4);
+-        ctx.fillText("城", end.x, end.y + 18);
++        // 终点：皇城（加强“城门”体积与层次，仍保持读图清晰）
++        Art._drawCityGate(ctx, end.x, end.y, theme);
+     },
++
++    // ===== Map themes (only visual) =====
++    MAP_THEMES: {
++        default: {
++            groundTop: "#3d2a14",
++            groundBottom: "#1a0f06",
++            pathEdge: "#5a3a1a",
++            pathMid: "#7a4f1c",
++            pathCore: "#a0742e",
++            pathDash: "rgba(255,220,150,.25)",
++            startBanner: "#aa2a2a",
++            textOnMap: "#f7d774",
++            gateStone: "#c9892b",
++            gateShadow: "#7a4d12",
++            features: ["hills"]
++        },
++        "lv-theme-hulu": {
++            groundTop: "#3d2a14",
++            groundBottom: "#140b06",
++            pathEdge: "#4a2d12",
++            pathMid: "#6a3f18",
++            pathCore: "#a0742e",
++            pathDash: "rgba(255,230,170,.22)",
++            startBanner: "#aa2a2a",
++            textOnMap: "#f7d774",
++            gateStone: "#c9892b",
++            gateShadow: "#7a4d12",
++            features: ["hills"]
++        },
++        "lv-theme-chang": {
++            // greener plains + colder shadow
++            groundTop: "#2a2414",
++            groundBottom: "#0f1209",
++            pathEdge: "#3b2a12",
++            pathMid: "#5a3a1a",
++            pathCore: "#8a6a3c",
++            pathDash: "rgba(210,230,255,.18)",
++            startBanner: "#7a1f1f",
++            textOnMap: "#c9d8ff",
++            gateStone: "#b8a37a",
++            gateShadow: "#3a2410",
++            features: ["hills"]
++        },
++        "lv-theme-chibi": {
++            // river + scorched ground (fire siege)
++            groundTop: "#2a160d",
++            groundBottom: "#0e0806",
++            pathEdge: "#3a220f",
++            pathMid: "#6a3a18",
++            pathCore: "#a86a2a",
++            pathDash: "rgba(255,220,150,.18)",
++            startBanner: "#aa2a2a",
++            textOnMap: "#ffd24a",
++            gateStone: "#d08a3a",
++            gateShadow: "#6b1c08",
++            features: ["river", "scorch"]
++        },
++        // prepared for future levels
++        "lv-theme-snow": {
++            groundTop: "#1a1f28",
++            groundBottom: "#0b0f16",
++            pathEdge: "#2a2a2a",
++            pathMid: "#4a4a4a",
++            pathCore: "#7a7a7a",
++            pathDash: "rgba(220,240,255,.20)",
++            startBanner: "#7a1f1f",
++            textOnMap: "#c9d8ff",
++            gateStone: "#b8c2cc",
++            gateShadow: "#2a3038",
++            features: ["snow"]
++        }
++    },
++
++    _terrainNoise(ctx, W, H, theme) {
++        // low-contrast dots + blobs, avoids interfering with the path
++        ctx.save();
++        for (let i = 0; i < 70; i++) {
++            const x = (i * 137) % W, y = (i * 73 + 37) % H;
++            ctx.fillStyle = "rgba(80,50,20,.18)";
++            ctx.beginPath();
++            ctx.arc(x, y, 14 + (i % 5) * 4, 0, Math.PI * 2);
++            ctx.fill();
++        }
++        for (let i = 0; i < 46; i++) {
++            const x = (i * 211 + 60) % W, y = (i * 97 + 17) % H;
++            ctx.fillStyle = "rgba(60,90,40,.14)";
++            ctx.beginPath();
++            ctx.arc(x, y, 5 + (i % 3) * 2, 0, Math.PI * 2);
++            ctx.fill();
++        }
++        ctx.restore();
++    },
++
++    _drawHills(ctx, W, H, theme) {
++        ctx.save();
++        // big soft hill shadows
++        for (let i = 0; i < 10; i++) {
++            const x = ((i * 193) % W) + 40;
++            const y = ((i * 121) % H) + 30;
++            const rx = 120 + (i % 3) * 60;
++            const ry = 55 + (i % 4) * 18;
++            ctx.fillStyle = "rgba(0,0,0,.10)";
++            ctx.beginPath();
++            ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
++            ctx.fill();
++            ctx.fillStyle = "rgba(120,90,50,.08)";
++            ctx.beginPath();
++            ctx.ellipse(x - 14, y - 8, rx * 0.72, ry * 0.68, 0, 0, Math.PI * 2);
++            ctx.fill();
++        }
++        // small rock clusters
++        for (let i = 0; i < 28; i++) {
++            const x = (i * 79 + 30) % W;
++            const y = (i * 131 + 50) % H;
++            ctx.fillStyle = "rgba(40,40,40,.20)";
++            ctx.beginPath();
++            ctx.arc(x, y, 6 + (i % 4) * 2, 0, Math.PI * 2);
++            ctx.fill();
++        }
++        ctx.restore();
++    },
++
++    _drawRiver(ctx, W, H, theme) {
++        ctx.save();
++        // a diagonal band (kept subtle)
++        const grad = ctx.createLinearGradient(0, H * 0.2, W, H * 0.8);
++        grad.addColorStop(0, "rgba(40,120,180,.0)");
++        grad.addColorStop(0.35, "rgba(40,120,180,.14)");
++        grad.addColorStop(0.65, "rgba(80,170,255,.18)");
++        grad.addColorStop(1, "rgba(40,120,180,.0)");
++        ctx.fillStyle = grad;
++        ctx.beginPath();
++        ctx.moveTo(0, H * 0.25);
++        ctx.lineTo(W, H * 0.55);
++        ctx.lineTo(W, H * 0.70);
++        ctx.lineTo(0, H * 0.40);
++        ctx.closePath();
++        ctx.fill();
++
++        // ripples
++        ctx.strokeStyle = "rgba(200,240,255,.12)";
++        ctx.lineWidth = 1;
++        for (let i = 0; i < 22; i++) {
++            const x = (i * 49) % W;
++            const y = H * 0.33 + ((i * 37) % 120);
++            ctx.beginPath();
++            ctx.ellipse(x, y, 18, 5, 0.2, 0, Math.PI * 2);
++            ctx.stroke();
++        }
++        ctx.restore();
++    },
++
++    _drawSnowPatches(ctx, W, H, theme) {
++        ctx.save();
++        for (let i = 0; i < 16; i++) {
++            const x = (i * 113 + 40) % W;
++            const y = (i * 91 + 30) % H;
++            ctx.fillStyle = "rgba(235,245,255,.16)";
++            ctx.beginPath();
++            ctx.ellipse(x, y, 60 + (i % 4) * 22, 22 + (i % 3) * 10, 0.2, 0, Math.PI * 2);
++            ctx.fill();
++        }
++        ctx.restore();
++    },
++
++    _drawScorch(ctx, W, H, theme) {
++        ctx.save();
++        for (let i = 0; i < 18; i++) {
++            const x = (i * 151 + 70) % W;
++            const y = (i * 83 + 40) % H;
++            ctx.fillStyle = "rgba(0,0,0,.16)";
++            ctx.beginPath();
++            ctx.ellipse(x, y, 50 + (i % 4) * 18, 18 + (i % 3) * 8, (i % 7) * 0.2, 0, Math.PI * 2);
++            ctx.fill();
++            ctx.fillStyle = "rgba(255,120,40,.05)";
++            ctx.beginPath();
++            ctx.ellipse(x - 8, y - 4, 22, 8, 0.15, 0, Math.PI * 2);
++            ctx.fill();
++        }
++        ctx.restore();
++    },
++
++    _drawCityGate(ctx, x, y, theme) {
++        // Slightly larger than original, but still compact and readable
++        ctx.save();
++        // drop shadow
++        ctx.fillStyle = "rgba(0,0,0,.45)";
++        ctx.fillRect(x - 36, y - 20, 76, 60);
++
++        // main wall block
++        ctx.fillStyle = theme.gateStone;
++        ctx.fillRect(x - 38, y - 30, 76, 60);
++
++        // top cap
++        ctx.fillStyle = theme.gateShadow;
++        ctx.fillRect(x - 38, y - 30, 76, 10);
++
++        // crenellations
++        ctx.fillStyle = theme.gateStone;
++        for (let i = -3; i <= 2; i++) ctx.fillRect(x + i * 12 + 4, y - 42, 8, 12);
++
++        // arch opening
++        ctx.fillStyle = "#0b0705";
++        ctx.beginPath();
++        ctx.moveTo(x - 12, y + 28);
++        ctx.lineTo(x - 12, y - 2);
++        ctx.quadraticCurveTo(x, y - 18, x + 12, y - 2);
++        ctx.lineTo(x + 12, y + 28);
++        ctx.closePath();
++        ctx.fill();
++
++        // inner glow (subtle)
++        const g = ctx.createRadialGradient(x, y + 10, 2, x, y + 10, 22);
++        g.addColorStop(0, "rgba(255,200,120,.10)");
++        g.addColorStop(1, "rgba(255,200,120,0)");
++        ctx.fillStyle = g;
++        ctx.beginPath();
++        ctx.arc(x, y + 10, 24, 0, Math.PI * 2);
++        ctx.fill();
++
++        // label
++        ctx.fillStyle = theme.textOnMap;
++        ctx.font = "bold 12px serif";
++        ctx.textAlign = "center";
++        ctx.fillText("皇", x, y + 2);
++        ctx.fillText("城", x, y + 18);
++
++        // torches
++        ctx.fillStyle = "rgba(255,140,60,.9)";
++        ctx.beginPath(); ctx.arc(x - 26, y - 6, 3, 0, Math.PI * 2); ctx.fill();
++        ctx.beginPath(); ctx.arc(x + 26, y - 6, 3, 0, Math.PI * 2); ctx.fill();
++        ctx.restore();
++    },

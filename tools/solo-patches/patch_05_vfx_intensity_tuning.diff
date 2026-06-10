@@ -1,0 +1,156 @@
+diff --git a/app/src/main/assets/www/js/art.js b/app/src/main/assets/www/js/art.js
+--- a/app/src/main/assets/www/js/art.js
++++ b/app/src/main/assets/www/js/art.js
+@@
+             case "flood":
+@@
+                 // 水雾/泡沫粒子（少量，性能友好）
+                 for (let i = 0; i < 22; i++) {
+                     const seed = (i * 71 + ef.elapsed * 140) % U.pathLength(ef.path);
+                     const pt = U.pointOnPath(ef.path, seed);
+                     const wob = Math.sin(ef.elapsed * 6 + i) * 10;
+-                    ctx.fillStyle = "rgba(200,240,255,.28)";
++                    // 轻微增强：更容易在暖色地图上读到泡沫
++                    ctx.fillStyle = "rgba(200,240,255,.34)";
+                     ctx.beginPath(); ctx.arc(pt.x + wob, pt.y - 6 + (i % 3), 2.2 + (i % 2), 0, Math.PI * 2); ctx.fill();
+                 }
+                 break;
+             case "blaze":
+@@
+                 // 余烬上飘（低数量）
+                 {
+                     const L = U.pathLength(ef.path);
+-                    for (let i = 0; i < 26; i++) {
++                    for (let i = 0; i < 32; i++) {
+                         const seed = (i * 97 + ef.elapsed * 220) % L;
+                         const pt = U.pointOnPath(ef.path, seed);
+                         const up = (ef.elapsed * 30 + i * 7) % 36;
+                         const sway = Math.sin(ef.elapsed * 3 + i) * 10;
+-                        ctx.fillStyle = `rgba(255,180,80,${0.18 + 0.18 * Math.sin(ef.elapsed * 5 + i)})`;
+-                        ctx.beginPath(); ctx.arc(pt.x + sway, pt.y - up, 1.8, 0, Math.PI * 2); ctx.fill();
++                        const a = 0.26 + 0.22 * Math.sin(ef.elapsed * 5 + i);
++                        ctx.fillStyle = `rgba(255,190,90,${Math.max(0.12, a)})`;
++                        ctx.beginPath(); ctx.arc(pt.x + sway, pt.y - up, 2.2, 0, Math.PI * 2); ctx.fill();
+                     }
+                 }
+                 break;
+             case "stun":
+                 // 全场冲击波
+                 const r = U.lerp(0, 700, Math.min(1, ef.elapsed / 0.6));
+                 // 闪光（短促，不遮挡读图）
+                 if (ef.elapsed < 0.18) {
+-                    const a = 0.12 * (1 - ef.elapsed / 0.18);
++                    const a = 0.22 * (1 - ef.elapsed / 0.18);
+                     ctx.fillStyle = `rgba(255,220,140,${a})`;
+                     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                 }
+-                ctx.strokeStyle = `rgba(255,200,80,${1 - Math.min(1, ef.elapsed / 0.6)})`;
+-                ctx.lineWidth = 6;
++                const a0 = 1 - Math.min(1, ef.elapsed / 0.6);
++                ctx.strokeStyle = `rgba(255,210,95,${Math.min(1, a0 * 1.2)})`;
++                ctx.lineWidth = 8;
+                 ctx.beginPath(); ctx.arc(ef.x, ef.y, r, 0, Math.PI * 2); ctx.stroke();
+-                ctx.strokeStyle = `rgba(255,255,255,${0.7 - Math.min(.7, ef.elapsed / 0.6)})`;
+-                ctx.lineWidth = 3;
++                ctx.strokeStyle = `rgba(255,255,255,${Math.min(0.9, 0.85 - Math.min(.85, ef.elapsed / 0.6))})`;
++                ctx.lineWidth = 4;
+                 ctx.beginPath(); ctx.arc(ef.x, ef.y, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+                 // 星火
+-                for (let i = 0; i < 10; i++) {
+-                    const ang = i / 10 * Math.PI * 2 + ef.elapsed * 2;
++                for (let i = 0; i < 14; i++) {
++                    const ang = i / 14 * Math.PI * 2 + ef.elapsed * 2.4;
+                     const rr = 40 + ef.elapsed * 120;
+                     const x = ef.x + Math.cos(ang) * rr;
+                     const y = ef.y + Math.sin(ang) * rr;
+-                    ctx.fillStyle = "rgba(255,240,180,.45)";
+-                    ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
++                    ctx.fillStyle = "rgba(255,245,200,.70)";
++                    ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI * 2); ctx.fill();
+                 }
+                 break;
+             case "maze":
+                 // 八阵图旋转
+                 ctx.translate(ef.x, ef.y);
+                 ctx.rotate(ef.elapsed * 1.2);
+                 for (let i = 0; i < 8; i++) {
+                     const ang = i / 8 * Math.PI * 2;
+-                    const x = Math.cos(ang) * 60, y = Math.sin(ang) * 60;
++                    const x = Math.cos(ang) * 72, y = Math.sin(ang) * 72;
+                     ctx.fillStyle = `rgba(122,216,255,${0.4 + 0.4 * Math.sin(ef.elapsed * 6 + i)})`;
+-                    ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.fill();
++                    ctx.beginPath(); ctx.arc(x, y, 13.5, 0, Math.PI * 2); ctx.fill();
+                 }
+                 ctx.strokeStyle = "rgba(122,216,255,.5)";
+                 ctx.lineWidth = 2;
+-                ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.stroke();
++                ctx.beginPath(); ctx.arc(0, 0, 72, 0, Math.PI * 2); ctx.stroke();
+                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
+-                ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.stroke();
++                ctx.beginPath(); ctx.arc(0, 0, 36, 0, Math.PI * 2); ctx.stroke();
+                 // 八卦线（薄线，增强“阵法”感）
+-                ctx.strokeStyle = "rgba(255,255,255,.18)";
+-                ctx.lineWidth = 1;
++                ctx.strokeStyle = "rgba(255,255,255,.32)";
++                ctx.lineWidth = 1.5;
+                 for (let i = 0; i < 8; i++) {
+                     const a = i / 8 * Math.PI * 2;
+                     ctx.beginPath();
+                     ctx.moveTo(Math.cos(a) * 18, Math.sin(a) * 18);
+-                    ctx.lineTo(Math.cos(a) * 68, Math.sin(a) * 68);
++                    ctx.lineTo(Math.cos(a) * 82, Math.sin(a) * 82);
+                     ctx.stroke();
+                 }
+                 break;
+             case "execute":
+                 // 处决一击：金色十字 + 残影
+                 ctx.translate(ef.x, ef.y);
+                 ctx.rotate(ef.elapsed * 6);
+                 ctx.strokeStyle = `rgba(255,213,90,${1 - t})`;
+-                ctx.lineWidth = 6;
++                ctx.lineWidth = 8;
+                 ctx.beginPath();
+-                ctx.moveTo(-50, 0); ctx.lineTo(50, 0);
+-                ctx.moveTo(0, -50); ctx.lineTo(0, 50);
++                ctx.moveTo(-62, 0); ctx.lineTo(62, 0);
++                ctx.moveTo(0, -62); ctx.lineTo(0, 62);
+                 ctx.stroke();
+                 ctx.fillStyle = `rgba(255,255,255,${0.8 - 0.8 * t})`;
+-                ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
++                ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                 // 斩击残影（更“重击”）
+-                ctx.strokeStyle = `rgba(255,230,160,${0.45 * (1 - t)})`;
+-                ctx.lineWidth = 3;
+-                ctx.beginPath(); ctx.moveTo(-62, -18); ctx.lineTo(62, 18); ctx.stroke();
+-                ctx.beginPath(); ctx.moveTo(-62, 18); ctx.lineTo(62, -18); ctx.stroke();
++                ctx.strokeStyle = `rgba(255,235,175,${0.65 * (1 - t)})`;
++                ctx.lineWidth = 5;
++                ctx.beginPath(); ctx.moveTo(-78, -22); ctx.lineTo(78, 22); ctx.stroke();
++                ctx.beginPath(); ctx.moveTo(-78, 22); ctx.lineTo(78, -22); ctx.stroke();
+                 break;
+             case "charge":
+                 // 银影残像
+                 for (let i = 0; i < ef.trail.length; i++) {
+                     const tr = ef.trail[i];
+                     const a = i / ef.trail.length;
+-                    ctx.fillStyle = `rgba(220,230,255,${a * 0.6})`;
+-                    ctx.beginPath(); ctx.arc(tr.x, tr.y, 12 * a, 0, Math.PI * 2); ctx.fill();
++                    ctx.fillStyle = `rgba(220,235,255,${a * 0.78})`;
++                    ctx.beginPath(); ctx.arc(tr.x, tr.y, 14 * a, 0, Math.PI * 2); ctx.fill();
+                 }
+                 // 速度线
+-                ctx.strokeStyle = "rgba(255,255,255,.25)";
+-                ctx.lineWidth = 2;
+-                for (let i = 0; i < ef.trail.length - 1; i += 2) {
++                ctx.strokeStyle = "rgba(255,255,255,.40)";
++                ctx.lineWidth = 3;
++                for (let i = 0; i < ef.trail.length - 1; i += 1) {
+                     const a = ef.trail[i];
+                     const b = ef.trail[i + 1];
+                     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+                 }
+                 ctx.fillStyle = "#e8efff";
+                 ctx.beginPath(); ctx.arc(ef.x, ef.y, 14, 0, Math.PI * 2); ctx.fill();
+                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+                 ctx.beginPath(); ctx.moveTo(ef.x - 18, ef.y); ctx.lineTo(ef.x + 18, ef.y); ctx.stroke();
+                 break;

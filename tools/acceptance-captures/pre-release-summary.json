@@ -1,0 +1,31 @@
+{
+  "time": "2026-06-10T05:41:59.378Z",
+  "steps": [
+    {
+      "id": "verifyApkAssetsParity",
+      "ok": true,
+      "detail": "skipped (--skip-gradle)"
+    },
+    {
+      "id": "audit-campaign-balance",
+      "ok": true
+    },
+    {
+      "id": "verify-art-manifest",
+      "ok": true
+    },
+    {
+      "id": "test-campaign-viewport.mjs",
+      "ok": true
+    },
+    {
+      "id": "device-acceptance.mjs",
+      "ok": true
+    },
+    {
+      "id": "test-level5-battle.mjs",
+      "ok": true
+    }
+  ],
+  "pass": true
+}

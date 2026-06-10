@@ -1,0 +1,46 @@
+{
+  "time": "2026-06-01T08:45:10.930Z",
+  "metrics": {
+    "panelVisible": true,
+    "panel": {
+      "top": 145,
+      "bottom": 299,
+      "height": 154
+    },
+    "actions": {
+      "top": 238,
+      "bottom": 290,
+      "height": 52
+    },
+    "upgradeBtn": {
+      "height": 47,
+      "text": "升级 80"
+    },
+    "buttons": [
+      {
+        "text": "升级 80",
+        "height": 47,
+        "bottom": 290
+      },
+      {
+        "text": "水淹七军 · 0",
+        "height": 47,
+        "bottom": 290
+      },
+      {
+        "text": "Lv.3 可合成",
+        "height": 47,
+        "bottom": 290
+      },
+      {
+        "text": "撤退 +48",
+        "height": 47,
+        "bottom": 290
+      }
+    ],
+    "viewportH": 411,
+    "marginFromScreenBottom": 112,
+    "actionsInPanel": true,
+    "pass": true
+  }
+}

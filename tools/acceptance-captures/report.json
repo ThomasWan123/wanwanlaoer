@@ -1,0 +1,57 @@
+{
+  "time": "2026-06-10T05:42:38.349Z",
+  "device": "RFCY71HFAYX",
+  "pkg": "com.sanguotd.towerdefense2",
+  "checks": [
+    {
+      "id": "assets",
+      "ok": true,
+      "detail": {
+        "ready": true,
+        "failed": false,
+        "hasClass": true,
+        "imageCount": 66,
+        "portraits": 38,
+        "maps": 27,
+        "menuBg": true,
+        "guanyu": true,
+        "chibiMap": true
+      }
+    },
+    {
+      "id": "menu_screen",
+      "ok": true,
+      "shot": "01_menu.png"
+    },
+    {
+      "id": "level_select",
+      "ok": true,
+      "mapArtCards": 30,
+      "shot": "02_level_select.png"
+    },
+    {
+      "id": "codex",
+      "ok": true,
+      "portraitCards": 38,
+      "shot": "03_codex.png"
+    },
+    {
+      "id": "lineup",
+      "ok": true,
+      "shot": "03b_lineup.png"
+    },
+    {
+      "id": "battle_chibi",
+      "ok": true,
+      "shot": "04_battle_chibi.png"
+    },
+    {
+      "id": "battle_huluguan",
+      "ok": true,
+      "shot": "05_battle_huluguan.png"
+    }
+  ],
+  "devtoolsSocket": "webview_devtools_remote_22206",
+  "logcatErrors": [],
+  "pass": true
+}

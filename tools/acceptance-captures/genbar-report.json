@@ -1,0 +1,36 @@
+{
+  "time": "2026-06-01T08:45:24.521Z",
+  "metrics": {
+    "level": "徐州争锋",
+    "chips": 3,
+    "bar": {
+      "top": 292,
+      "bottom": 387,
+      "height": 96,
+      "width": 248
+    },
+    "stageBottom": 411,
+    "viewportH": 411,
+    "marginFromScreenBottom": 24,
+    "marginFromStageBottom": 24,
+    "badges": [
+      {
+        "text": "80",
+        "bottom": 368,
+        "inBar": true
+      },
+      {
+        "text": "100",
+        "bottom": 368,
+        "inBar": true
+      },
+      {
+        "text": "90",
+        "bottom": 368,
+        "inBar": true
+      }
+    ],
+    "pass": true
+  },
+  "shot": "06_battle_xuzhou_genbar.png"
+}

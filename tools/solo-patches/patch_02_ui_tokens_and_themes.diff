@@ -1,0 +1,137 @@
+diff --git a/app/src/main/assets/www/css/style.css b/app/src/main/assets/www/css/style.css
+index 5555555..6666666 100644
+--- a/app/src/main/assets/www/css/style.css
++++ b/app/src/main/assets/www/css/style.css
+@@
+ body {
+     font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+-    color: #f3e9d2;
+-    background: radial-gradient(ellipse at top, #2a1a10 0%, #120a06 60%, #08040a 100%);
++    /* === UI Tokens (defaults) === */
++    --ui-text: #f3e9d2;
++    --ui-accent: #f7d774;
++    --ui-accent-2: #ff9b4a;
++    --ui-border: #4a3219;
++    --ui-surface-top: #2a1a10;
++    --ui-surface-bot: #140c06;
++    --ui-bg-0: #2a1a10;
++    --ui-bg-1: #120a06;
++    --ui-bg-2: #08040a;
++    --ui-btn-top: #4a3219;
++    --ui-btn-bot: #2c1c0d;
++    --ui-primary-top: #c9892b;
++    --ui-primary-bot: #7a4d12;
++    --ui-gold: #f7d774;
++    --ui-fire-top: #d04020;
++    --ui-fire-bot: #6b1c08;
++    --ui-progress-a: #275a99;
++    --ui-progress-b: #6cb8ff;
++    --ui-progress-c: #f7d774;
++
++    color: var(--ui-text);
++    background: radial-gradient(ellipse at top, var(--ui-bg-0) 0%, var(--ui-bg-1) 60%, var(--ui-bg-2) 100%);
+     overflow: hidden;
+     user-select: none;
+     -webkit-tap-highlight-color: transparent;
+     touch-action: none;
+     overscroll-behavior: none;
+     -webkit-overflow-scrolling: none;
+ }
++
++/* === Per-level theme overrides (only visual) === */
++body.lv-theme-hulu {
++    --ui-accent: #f7d774;
++    --ui-accent-2: #ff9b4a;
++    --ui-bg-0: #2a1a10;
++    --ui-bg-1: #120a06;
++    --ui-bg-2: #08040a;
++    --ui-progress-a: #275a99;
++    --ui-progress-b: #6cb8ff;
++    --ui-progress-c: #f7d774;
++}
++body.lv-theme-chang {
++    /* 追击战：更冷的钢蓝、清爽对比 */
++    --ui-accent: #86c8ff;
++    --ui-accent-2: #c9d8ff;
++    --ui-bg-0: #131a24;
++    --ui-bg-1: #0b1018;
++    --ui-bg-2: #06080d;
++    --ui-primary-top: #2f6fb1;
++    --ui-primary-bot: #1a3c64;
++    --ui-progress-a: #2f6fb1;
++    --ui-progress-b: #86c8ff;
++    --ui-progress-c: #f7d774;
++}
++body.lv-theme-chibi {
++    /* 火攻：更热的橙红、烟熏氛围 */
++    --ui-accent: #ff9b4a;
++    --ui-accent-2: #ffd24a;
++    --ui-bg-0: #24140c;
++    --ui-bg-1: #120a06;
++    --ui-bg-2: #070408;
++    --ui-primary-top: #d05a22;
++    --ui-primary-bot: #6b1c08;
++    --ui-progress-a: #8a2a2a;
++    --ui-progress-b: #ff9b4a;
++    --ui-progress-c: #ffd24a;
++}
+@@
+ .title {
+     font-size: 80px;
+     margin: 0;
+     letter-spacing: 16px;
+-    color: #f7d774;
++    color: var(--ui-accent);
+     text-shadow:
+         0 0 8px rgba(247,215,116,.4),
+         0 0 28px rgba(255,140,0,.45),
+         0 6px 0 #4a2913;
+     font-weight: 900;
+ }
+@@
+ .btn {
+     display: inline-block;
+     padding: 12px 22px;
+-    border: 2px solid #8a6a3c;
+-    background: linear-gradient(180deg, #4a3219 0%, #2c1c0d 100%);
++    border: 2px solid rgba(138,106,60,.92);
++    background: linear-gradient(180deg, var(--ui-btn-top) 0%, var(--ui-btn-bot) 100%);
+     color: #f3e9d2;
+@@
+ .btn-primary {
+-    background: linear-gradient(180deg, #c9892b 0%, #7a4d12 100%);
+-    border-color: #f7d774;
++    background: linear-gradient(180deg, var(--ui-primary-top) 0%, var(--ui-primary-bot) 100%);
++    border-color: var(--ui-accent);
+     color: #fff8e1;
+     text-shadow: 0 1px 0 #5a2f08;
+ }
+@@
+ .btn-fire {
+-    background: linear-gradient(180deg, #d04020 0%, #6b1c08 100%);
+-    border-color: #ff8a4c;
++    background: linear-gradient(180deg, var(--ui-fire-top) 0%, var(--ui-fire-bot) 100%);
++    border-color: rgba(255,138,76,.95);
+ }
+@@
+ .panel-title {
+-    font-size: 32px; color: #f7d774; letter-spacing: 12px;
++    font-size: 32px; color: var(--ui-accent); letter-spacing: 12px;
+     margin: 0 0 24px; text-shadow: 0 4px 0 #4a2913;
+ }
+@@
+ .topbar {
+@@
+-    background: linear-gradient(180deg, #2a1a10 0%, #160c06 100%);
+-    border-bottom: 2px solid #4a3219;
++    background: linear-gradient(180deg, var(--ui-surface-top) 0%, var(--ui-surface-bot) 100%);
++    border-bottom: 2px solid var(--ui-border);
+     z-index: 5;
+ }
+@@
+ .wave-progress-bar {
+     height: 100%; width: 0%;
+-    background: linear-gradient(90deg, #275a99, #6cb8ff, #f7d774);
++    background: linear-gradient(90deg, var(--ui-progress-a), var(--ui-progress-b), var(--ui-progress-c));
+     transition: width .2s linear;
+ }

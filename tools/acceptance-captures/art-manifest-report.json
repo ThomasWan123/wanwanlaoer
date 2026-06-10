@@ -1,0 +1,16 @@
+{
+  "time": "2026-06-10T05:41:59.760Z",
+  "mode": "apk",
+  "apk": "C:\\GT-123\\game\\AndroidVer\\app\\build\\outputs\\apk\\debug\\app-debug-repacked.apk",
+  "manifest": {
+    "portraits": 38,
+    "maps": 27,
+    "ui": 1,
+    "entries": 66
+  },
+  "onDisk": 66,
+  "missing": [],
+  "orphans": [],
+  "oversize": [],
+  "pass": true
+}

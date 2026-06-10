@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>三国塔防2</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div id="app">
+        <!-- 主菜单 -->
+        <div id="menu" class="screen menu-screen active">
+            <div class="menu-inner">
+                <div class="title-wrap">
+                    <h1 class="title">三国塔防2</h1>
+                    <h2 class="subtitle">谋 · 定 · 天 · 下</h2>
+                    <p class="tagline">布武将、守皇城，三十关三国志塔防</p>
+                </div>
+                <div class="menu-frame">
+                    <div class="menu-buttons">
+                        <button id="btn-start" class="btn btn-primary">开始征战</button>
+                        <button id="btn-help" class="btn">武将图鉴</button>
+                        <button id="btn-settings" class="btn">设置</button>
+                        <button id="btn-credits" class="btn btn-ghost">关于</button>
+                    </div>
+                </div>
+                <div class="hint hint-main">鼠标：左键点选布阵，右键画布取消选中。</div>
+                <div class="hint hint-sub">触屏：点格部署武将；双指缩放，放大后可单指拖动；双击复位；长按取消选中。</div>
+            </div>
+        </div>
+
+        <!-- 选关 -->
+        <div id="level-select" class="screen level-select-screen">
+            <h2 class="panel-title">选择战役</h2>
+            <p id="campaign-progress-text" class="campaign-progress"></p>
+            <p class="level-select-hint">上下滑动浏览全部 30 关 · 点击已解锁关卡进入编队</p>
+            <div id="level-list" class="level-list"></div>
+            <div class="level-select-footer">
+                <button id="btn-reset-campaign" class="btn btn-ghost btn-reset-campaign" type="button">重置战役</button>
+                <button class="btn btn-ghost back-btn" data-back="menu">返回主菜单</button>
+            </div>
+        </div>
+
+        <!-- 编队 -->
+        <div id="lineup-screen" class="screen lineup-screen">
+            <h2 class="panel-title" id="lineup-title">选择出战武将</h2>
+            <p class="lineup-hint">从已解锁武将中勾选，最多 6 人</p>
+            <div id="lineup-grid" class="lineup-grid"></div>
+            <div class="lineup-actions">
+                <button id="btn-lineup-start" class="btn btn-primary">开始战斗</button>
+                <button id="btn-lineup-back" class="btn btn-ghost">返回</button>
+            </div>
+        </div>
+
+        <!-- 图鉴 -->
+        <div id="codex" class="screen codex-screen">
+            <h2 class="panel-title">武将图鉴</h2>
+            <div id="codex-list" class="codex-list"></div>
+            <h3 class="codex-subtitle">敌军志</h3>
+            <p class="codex-lead">以下为战场常见兵种与被动，便于针对布阵（数据与关卡内一致）。</p>
+            <div id="codex-enemy-list" class="codex-enemy-list"></div>
+            <button class="btn btn-ghost back-btn" data-back="menu">返回</button>
+        </div>
+
+        <!-- 设置 -->
+        <div id="settings" class="screen settings-screen">
+            <div class="settings-inner">
+                <h2 class="panel-title">设置</h2>
+                <div class="settings-body">
+                    <section class="settings-section">
+                        <h3 class="settings-label">画面清晰度</h3>
+                        <p class="settings-hint">影响战斗画布分辨率，可随时切换。</p>
+                        <p class="settings-options">
+                            <label><input type="radio" name="render-quality" value="auto" /> 自动</label>
+                            <label><input type="radio" name="render-quality" value="performance" /> 流畅</label>
+                            <label><input type="radio" name="render-quality" value="quality" /> 高清</label>
+                        </p>
+                    </section>
+                    <section class="settings-section">
+                        <h3 class="settings-label">战斗</h3>
+                        <label class="settings-check"><input type="checkbox" id="settings-ult-auto" /> 自动释放大招</label>
+                        <label class="settings-check"><input type="checkbox" id="settings-sfx" /> 音效</label>
+                    </section>
+                    <section class="settings-section settings-privacy">
+                        <h3 class="settings-label">隐私</h3>
+                        <p>进度仅保存在本机，无账号与联网同步。详见项目根目录 <code>PRIVACY.md</code>。</p>
+                        <p class="settings-version">版本 1.1.2 · 单机本地运行</p>
+                    </section>
+                </div>
+                <button class="btn btn-ghost back-btn" data-back="menu">返回</button>
+            </div>
+        </div>
+
+        <!-- 关于 -->
+        <div id="credits" class="screen">
+            <h2 class="panel-title">关于</h2>
+            <div class="credits-body">
+                <div class="credits-brand">
+                    <div class="credits-logo-wrap" aria-hidden="true">
+                        <div class="credits-logo-ring"></div>
+                        <div class="credits-logo-disk">
+                            <img src="img/wanwan-studio-logo.png" alt="" class="credits-logo" />
+                            <p class="credits-brand-line">万万. 活着就是玩工作室</p>
+                        </div>
+                    </div>
+                </div>
+                <p>《三国塔防》是一款以三国题材为核心的塔防策略游戏，现为 <strong>Android 独立应用</strong>（单机本地运行，进度保存在本机）。</p>
+                <p><strong>玩法</strong>：在地图空地布置武将，阻止敌军抵达皇城；击破路障可获得额外金币。武将随战斗升级，怒气蓄满后可释放专属大招。两尊同名且均为 Lv.3 的武将可合成<strong>红将</strong>，两尊红将再合成<strong>金将</strong>，战力成倍提升。主菜单「武将图鉴」内含 <strong>敌军志</strong>，可查阅兵种特性与被动。</p>
+                <p><strong>大招示例</strong>：关羽 · 水淹七军，周瑜 · 火烧赤壁，诸葛 · 八阵图，吕布 · 方天破，张飞 · 当阳桥怒喝，赵云 · 七进七出。</p>
+                <p>立绘与战斗特效均为程序绘制，未使用第三方美术资源包。本游戏与任何商业游戏、影视作品无隶属或授权关系；武将名及技能文案取材于《三国演义》等公有领域传说之二次演绎，仅供娱乐。</p>
+                <p class="credits-quality">画面、音效与自动大招请在主菜单「设置」中调整。</p>
+                <p class="credits-copyright">该游戏版权归《万万. 活着就是玩工作室》所有。</p>
+                <p class="credits-dev">万万. 活着就是玩工作室</p>
+            </div>
+            <button class="btn btn-ghost back-btn" data-back="menu">返回</button>
+        </div>
+
+        <!-- 游戏 -->
+        <div id="game-screen" class="screen game-screen">
+            <div class="topbar">
+                <div class="topbar-row">
+                    <div class="status">
+                        <span class="badge gold"><i>金</i><b id="ui-gold">0</b></span>
+                        <span class="badge life"><i>城</i><b id="ui-life">10</b></span>
+                        <span class="badge wave"><i>波</i><b id="ui-wave">0/0</b><span id="ui-wave-extra" class="wave-extra"></span></span>
+                    </div>
+                    <div class="controls">
+                        <button id="btn-speed" class="btn btn-mini btn-speed" type="button">×1</button>
+                        <button id="btn-pause" class="btn btn-mini">暂停</button>
+                        <button id="btn-quit" class="btn btn-mini btn-ghost">放弃</button>
+                    </div>
+                </div>
+                <div class="topbar-sub">
+                    <p id="ui-objective" class="topbar-objective" aria-live="polite"></p>
+                    <div class="wave-progress-wrap" aria-hidden="true">
+                        <div id="ui-wave-progress-bar" class="wave-progress-bar"></div>
+                    </div>
+                    <div class="topbar-modes">
+                        <span id="ui-placing-badge" class="mode-badge hidden">布置中</span>
+                        <span id="ui-merge-badge" class="mode-badge mode-merge hidden">合成中 · 点选同名满级武将</span>
+                        <span id="ui-speed-badge" class="mode-badge mode-speed">倍速 ×1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stage">
+                <div id="ult-flash-overlay" class="ult-flash-overlay hidden" aria-hidden="true"></div>
+                <div id="map-zoom-controls" class="map-zoom-controls hidden" aria-label="地图缩放">
+                    <button type="button" id="btn-zoom-out" class="btn btn-mini map-zoom-btn" title="缩小">－</button>
+                    <button type="button" id="btn-zoom-reset" class="btn btn-mini map-zoom-btn" title="重置视野">视野</button>
+                    <button type="button" id="btn-zoom-in" class="btn btn-mini map-zoom-btn" title="放大">＋</button>
+                </div>
+                <p id="map-view-hint" class="map-view-hint hidden">单指拖动查看全图 · 双指或右侧按钮缩放 · 双击复位视野</p>
+                <p id="first-battle-hint" class="first-battle-hint hidden">提示：点下方武将，再点地图空位布阵；点已部署武将可升级或放大招</p>
+                <div id="tutorial-overlay" class="tutorial-overlay hidden" role="dialog" aria-modal="true">
+                    <div class="tutorial-card">
+                        <p class="tutorial-step-label" id="tutorial-step-label">新手引导</p>
+                        <p class="tutorial-step-text" id="tutorial-step-text"></p>
+                        <div class="tutorial-actions">
+                            <button type="button" id="btn-tutorial-skip" class="btn btn-ghost btn-mini">跳过</button>
+                            <button type="button" id="btn-tutorial-next" class="btn btn-primary btn-mini">下一步</button>
+                        </div>
+                    </div>
+                </div>
+                <canvas id="canvas" width="960" height="600" style="touch-action:none"></canvas>
+
+                <div id="ult-toast" class="ult-toast hidden" role="status" aria-live="polite"></div>
+
+                <!-- 大字提示（波次播报、胜利、失败） -->
+                <div id="banner" class="banner hidden"></div>
+
+                <!-- Demo 控制条（仅 ?demo 时显示） -->
+                <div id="demo-bar" class="demo-bar hidden">
+                    <button id="btn-cast-all" class="btn btn-mini btn-fire">连放全部大招</button>
+                    <button id="btn-spawn" class="btn btn-mini">召唤一波</button>
+                </div>
+
+                <!-- 暂停遮罩 -->
+                <div id="pause-mask" class="mask hidden">
+                    <div class="mask-card">
+                        <h2>暂停中</h2>
+                        <p id="pause-rule-summary" class="pause-rules"></p>
+                        <button id="btn-resume" class="btn btn-primary">继续战斗</button>
+                        <button id="btn-pause-settings" class="btn">设置</button>
+                        <button id="btn-restart" class="btn">重新开始</button>
+                        <button id="btn-back-menu" class="btn btn-ghost">返回主菜单</button>
+                    </div>
+                </div>
+
+                <!-- 结算（矮横屏：result-inner 内单指上下滑） -->
+                <div id="result-mask" class="mask mask-result hidden">
+                    <div class="mask-card result-card">
+                        <div class="result-inner">
+                            <h2 id="result-title">胜利</h2>
+                            <p id="result-text"></p>
+                            <p id="result-stats" class="result-stats"></p>
+                            <button id="btn-next" class="btn btn-primary">下一关</button>
+                            <button id="btn-replay" class="btn">重新挑战</button>
+                            <button id="btn-result-menu" class="btn btn-ghost">返回主菜单</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 武将选择栏 / 操作面板：置于 game-screen，避免 stage overflow 裁切 -->
+            <div id="general-bar" class="general-bar"></div>
+            <div id="tower-panel" class="tower-panel tower-panel-dock hidden">
+                <div class="tp-scroll">
+                    <div class="tp-header">
+                        <div class="tp-portrait-wrap" id="tp-portrait-wrap">
+                            <div class="tp-portrait" id="tp-portrait"></div>
+                        </div>
+                        <div class="tp-meta">
+                            <div class="tp-name" id="tp-name">武将</div>
+                            <div class="tp-level" id="tp-level">Lv.1</div>
+                            <div id="tp-combat-line" class="tp-combat"></div>
+                        </div>
+                    </div>
+                    <div class="tp-ult-block">
+                        <div class="tp-ult-title">大招 · <span id="tp-ult-name">—</span></div>
+                        <div id="tp-ult-summary" class="tp-ult-summary"></div>
+                        <label class="tp-ult-auto">
+                            <input type="checkbox" id="tp-ult-auto" checked /> 自动大招
+                        </label>
+                    </div>
+                    <div class="tp-stats" id="tp-stats"></div>
+                    <div class="tp-rage">
+                        <div class="rage-bar"><div class="rage-fill" id="tp-rage-fill"></div></div>
+                        <div class="rage-text" id="tp-rage-text">怒气 0/100</div>
+                    </div>
+                    <div id="tp-merge-block" class="tp-merge-block hidden">
+                        <div class="tp-merge-title">附近可合成 · 同名满级</div>
+                        <div id="tp-merge-list" class="tp-merge-list"></div>
+                    </div>
+                </div>
+                <div class="tp-actions">
+                    <button id="tp-upgrade" class="btn btn-mini btn-primary" type="button">升级</button>
+                    <button id="tp-ultimate" class="btn btn-mini btn-fire" type="button">大招</button>
+                    <button id="tp-merge" class="btn btn-mini btn-merge" type="button">合成</button>
+                    <button id="tp-sell" class="btn btn-mini btn-ghost" type="button">撤退</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/util.js"></script>
+    <script src="js/data/regions.js"></script>
+    <script src="js/data/general-archetypes.js"></script>
+    <script src="js/data/campaign.js"></script>
+    <script src="js/data/paths.js"></script>
+    <script src="js/data/waveBuilder.js"></script>
+    <script src="js/data/levelFactory.js"></script>
+    <script src="js/data/generals.js"></script>
+    <script src="js/data/boss-generals.js"></script>
+    <script src="js/data/generals-registry.js"></script>
+    <script src="js/data/levels.js"></script>
+    <script src="js/progress.js"></script>
+    <script src="js/viewport.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/data/portrait-traits.js"></script>
+    <script src="js/assets.js"></script>
+    <script src="js/art.js"></script>
+    <script src="js/entities/enemy.js"></script>
+    <script src="js/entities/projectile.js"></script>
+    <script src="js/entities/tower.js"></script>
+    <script src="js/entities/effect.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/mobile-bridge.js"></script>
+    <script src="js/haptics.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
