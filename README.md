@@ -14,11 +14,15 @@
 
 ## 截图
 
-| 主菜单 | 战斗 |
-|--------|------|
+| 主菜单 | 赤壁战斗 |
+|--------|----------|
 | ![主菜单](docs/screenshots/01-menu.png) | ![战斗](docs/screenshots/02-battle.png) |
 
-更多见 [docs/screenshots/](docs/screenshots/)。
+| 小沛据守 | 选关 |
+|----------|------|
+| ![小沛](docs/screenshots/04-battle-xiaopei.png) | ![选关](docs/screenshots/05-level-select.png) |
+
+真机刷新：`node tools/device-acceptance.mjs` → `.\tools\prepare-play-store-assets.ps1`（同步 `docs/play-store/` 与 `docs/screenshots/`）。
 
 ## 构建
 

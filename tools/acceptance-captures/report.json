@@ -1,5 +1,5 @@
 {
-  "time": "2026-06-10T05:42:38.349Z",
+  "time": "2026-06-10T08:22:53.775Z",
   "device": "RFCY71HFAYX",
   "pkg": "com.sanguotd.towerdefense2",
   "checks": [
@@ -51,7 +51,7 @@
       "shot": "05_battle_huluguan.png"
     }
   ],
-  "devtoolsSocket": "webview_devtools_remote_22206",
+  "devtoolsSocket": "webview_devtools_remote_22781",
   "logcatErrors": [],
   "pass": true
 }

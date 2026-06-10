@@ -132,4 +132,24 @@ if (Test-Path $ultFlood) {
     $n++; Write-Host "OK 07-ultimate-flood.jpg"
 }
 Write-Host "`nDone: $n screenshots -> $ShotsOut"
+
+# --- README docs/screenshots (PNG from latest acceptance captures) ---
+$ReadmeShots = Join-Path $ProjectRoot "docs\screenshots"
+New-Item -ItemType Directory -Force -Path $ReadmeShots | Out-Null
+$readmePick = @(
+    @{ src = "01_menu.png"; dst = "01-menu.png" },
+    @{ src = "04_battle_chibi.png"; dst = "02-battle.png" },
+    @{ src = "05_battle_huluguan.png"; dst = "03-battle-hud.png" },
+    @{ src = "10_level5_xiaopei_battle.png"; dst = "04-battle-xiaopei.png" },
+    @{ src = "02_level_select.png"; dst = "05-level-select.png" },
+    @{ src = "03_codex.png"; dst = "06-codex.png" }
+)
+$rn = 0
+foreach ($p in $readmePick) {
+    $srcPath = Join-Path $Acceptance $p.src
+    if (-not (Test-Path $srcPath)) { Write-Warning "skip readme shot missing $srcPath"; continue }
+    Copy-Item -Force $srcPath (Join-Path $ReadmeShots $p.dst)
+    $rn++; Write-Host "OK docs/screenshots/$($p.dst)"
+}
+Write-Host "README screenshots: $rn -> $ReadmeShots"
 Write-Host "Store assets folder: $Out"
