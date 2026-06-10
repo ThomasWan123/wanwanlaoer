@@ -1,10 +1,8 @@
 # 三国塔防
 
-单机三国题材塔防（Android / iOS + WebView + Canvas）。布武将、守皇城，30 关战役；武将升级、合成、怒气大招。
+单机三国题材塔防（Android / WebView + Canvas）。布武将、守皇城，30 关战役；武将升级、合成、怒气大招。
 
-iPhone 横屏版见同级目录 [../IOSver/README.md](../IOSver/README.md)。
-
-**万万. 活着就是玩工作室**
+**万万. 活着就是玩工作室** · 仓库：[wanwanlaoer](https://github.com/ThomasWan123/wanwanlaoer)
 
 ## 功能概览
 
