@@ -16,13 +16,13 @@
 
 | 主菜单 | 赤壁战斗 |
 |--------|----------|
-| ![主菜单](docs/screenshots/01-menu.png) | ![战斗](docs/screenshots/02-battle.png) |
+| ![主菜单](docs/play-store/phone-screenshots/01-main-menu.jpg) | ![战斗](docs/play-store/phone-screenshots/03-battle-chibi.jpg) |
 
 | 小沛据守 | 选关 |
 |----------|------|
-| ![小沛](docs/screenshots/04-battle-xiaopei.png) | ![选关](docs/screenshots/05-level-select.png) |
+| ![小沛](docs/play-store/phone-screenshots/06-battle-xiaopei.jpg) | ![选关](docs/play-store/phone-screenshots/02-level-select.jpg) |
 
-真机刷新：`node tools/device-acceptance.mjs` → `.\tools\prepare-play-store-assets.ps1`（同步 `docs/play-store/` 与 `docs/screenshots/`）。
+真机刷新：`node tools/device-acceptance.mjs` → `.\tools\prepare-play-store-assets.ps1`（输出到 `docs/play-store/`）。
 
 ## 构建
 

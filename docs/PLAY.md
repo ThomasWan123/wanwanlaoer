@@ -33,7 +33,7 @@
 ## 4. 开源（GitHub）
 
 - [ ] 仓库公开（本地已备 README / MIT / `.gitignore`）
-- [x] README 安装说明与 [screenshots/](screenshots/)
+- [x] README 安装说明与 [play-store/phone-screenshots/](play-store/phone-screenshots/)
 - [x] GitHub Actions + Release APK artifact（`.github/workflows/android.yml`）
 
 ## 5. 上架后

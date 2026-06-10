@@ -34,7 +34,7 @@ node tools/verify-art-manifest.mjs --apk app/build/outputs/apk/debug/app-debug.a
 见 [PLAY.md](PLAY.md) 与 [STORE_LISTING.md](STORE_LISTING.md)。上架前必备：
 
 - 512×512 图标
-- 横屏截图 2～8 张（可用 [screenshots/](screenshots/)）
+- 横屏截图 2～8 张（见 [play-store/phone-screenshots/](play-store/phone-screenshots/)）
 - 简短/完整说明
 - 隐私政策 URL（链到仓库 `PRIVACY.md`）
 - 数据安全表单：仅本地存储，与 [PRIVACY.md](../PRIVACY.md) 一致
