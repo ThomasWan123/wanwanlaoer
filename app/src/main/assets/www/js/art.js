@@ -87,10 +87,19 @@ window.Art = {
 
     drawTower(ctx, tower) {
         const { x, y, general, level, mergeTier } = tower;
+        const P = window.Projection;
+        const iso = P && P.enabled;
         ctx.save();
         ctx.translate(x, y);
 
         const base = 22 + level * 2 + (mergeTier || 0) * 3;
+
+        // ===== 地面层：阴影 + 石台底盘（始终画在 y=0 地面） =====
+        if (iso) {
+            // 2.5D：额外投射阴影
+            P.drawShadow(ctx, base * 1.1, base * 0.42, P.SHADOW_ALPHA, 6);
+        }
+
         ctx.fillStyle = "rgba(0,0,0,.35)";
         ctx.beginPath();
         ctx.ellipse(0, 10, base * 0.95, base * 0.35, 0, 0, Math.PI * 2);
@@ -144,9 +153,34 @@ window.Art = {
         if (mergeTier === 2) tierTag += " 金";
         ctx.fillText(tierTag, 0, base * 0.5 + 12);
 
-        // 头像本体
+        // ===== 2.5D 高度层：将头像本体抬升至石台上方 =====
         const r = 18 + level * 1.5;
-        ctx.translate(0, -8);
+
+        if (iso) {
+            // 画一个从底盘到头像的"石柱"侧面，给立体感
+            const colH = P.heightFor("tower", { level, mergeTier });
+            const liftY = P.heightOffset(colH, 1);
+
+            // 石柱侧面（深色梯形）
+            ctx.fillStyle = "rgba(40, 28, 16, 0.6)";
+            ctx.beginPath();
+            ctx.moveTo(-base * 0.5, 0);
+            ctx.lineTo(base * 0.5, 0);
+            ctx.lineTo(base * 0.35, liftY + 2);
+            ctx.lineTo(-base * 0.35, liftY + 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // 石柱顶面
+            ctx.fillStyle = "rgba(80, 56, 30, 0.7)";
+            ctx.beginPath();
+            ctx.ellipse(0, liftY + 2, base * 0.4, base * 0.14, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.translate(0, liftY - 4);
+        } else {
+            ctx.translate(0, -8);
+        }
 
         // 旋转朝向当前目标
         if (tower.aim != null) {
@@ -727,16 +761,34 @@ window.Art = {
     // ============ 敌人绘制 ============
     drawEnemy(ctx, e) {
         const t = e.type;
+        const P = window.Projection;
+        const iso = P && P.enabled;
+        const sz = t.size;
+        const sc = t.scale;
+
+        // ===== 地面阴影层（2.5D 时画在地面原点，不随旋转） =====
+        if (iso) {
+            ctx.save();
+            ctx.translate(e.x, e.y);
+            P.drawShadow(ctx, sz * 0.7 * sc, sz * 0.25 * sc, P.SHADOW_ALPHA, 2);
+            ctx.restore();
+        }
+
         ctx.save();
         ctx.translate(e.x, e.y);
         ctx.rotate(e.angle + Math.PI / 2);
 
-        const sz = t.size;
-        const sc = t.scale;
+        // ===== 2.5D 高度抬升 =====
+        if (iso) {
+            const colH = P.heightFor("enemy", { weapon: t.weapon, size: sz });
+            ctx.translate(0, P.heightOffset(colH, 1));
+        }
 
-        // 影子
-        ctx.fillStyle = "rgba(0,0,0,.35)";
-        ctx.beginPath(); ctx.ellipse(0, sz * 0.6 * sc, sz * 0.7 * sc, sz * 0.25 * sc, 0, 0, Math.PI * 2); ctx.fill();
+        // 原始影子（非 2.5D 模式保留；2.5D 时已在地面层画过）
+        if (!iso) {
+            ctx.fillStyle = "rgba(0,0,0,.35)";
+            ctx.beginPath(); ctx.ellipse(0, sz * 0.6 * sc, sz * 0.7 * sc, sz * 0.25 * sc, 0, 0, Math.PI * 2); ctx.fill();
+        }
 
         if (t.weapon === "siege") {
             Art._drawSiege(ctx, t, sc);
@@ -1174,12 +1226,145 @@ window.Art = {
         return { top: "#3d2a14", bot: "#1a0f06", bush: "rgba(80,50,20,.5)", grass: "rgba(60,90,40,.45)", path: ["#6a4820", "#8a5c28", "#c09040"] };
     },
 
+    // ============ 2.5D 视差背景 ============
+    /**
+     * 绘制 3 层视差背景：天空层 + 远景层 + 近景层。
+     * 每层根据相机平移位置以不同速率滚动，产生空间纵深。
+     * 程序绘制，覆盖全部 27 个 mapTheme，无需额外资产。
+     */
+    _drawParallaxLayers(ctx, level, W, H, pal) {
+        const P = window.Projection;
+        if (!P || !P.enabled) return; // 纯俯视时跳过
+        const theme = level.mapTheme || "central_plain";
+        const v = (window.Game && Game.view) || { panX: 0, panY: 0 };
+
+        // === 天空层（视差 0.15，几乎不动） ===
+        const skyOffX = -v.panX * 0.15;
+        const skyOffY = -v.panY * 0.15 * P.Y_SQUASH;
+        ctx.save();
+        ctx.translate(skyOffX, skyOffY);
+        this._drawSkyLayer(ctx, theme, W, H, pal);
+        ctx.restore();
+
+        // === 远景层（视差 0.4，慢速滚动） ===
+        const farOffX = -v.panX * 0.4;
+        const farOffY = -v.panY * 0.4 * P.Y_SQUASH;
+        ctx.save();
+        ctx.translate(farOffX, farOffY);
+        this._drawFarLayer(ctx, theme, W, H, pal);
+        ctx.restore();
+    },
+
+    /** 天空层：渐变天空 + 云 + 太阳/月亮 */
+    _drawSkyLayer(ctx, theme, W, H, pal) {
+        // 天空渐变（比地图底色更亮）
+        const skyTop = U.shade(pal.top, 35);
+        const skyBot = U.shade(pal.top, 10);
+        const grd = ctx.createLinearGradient(0, 0, 0, H * 0.65);
+        grd.addColorStop(0, skyTop);
+        grd.addColorStop(1, skyBot);
+        ctx.fillStyle = grd;
+        ctx.fillRect(-50, -50, W + 100, H * 0.7);
+
+        // 太阳/月亮光晕
+        const sunX = W * 0.78, sunY = H * 0.18;
+        const sunColor = theme.indexOf("snow") >= 0 || theme.indexOf("winter") >= 0
+            ? "rgba(200,220,255,0.4)" : "rgba(255,230,160,0.35)";
+        const sg = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 120);
+        sg.addColorStop(0, sunColor);
+        sg.addColorStop(1, "rgba(255,230,160,0)");
+        ctx.fillStyle = sg;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 120, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 飘云（3 朵，随主题色调）
+        const cloudColor = theme.indexOf("snow") >= 0 || theme.indexOf("winter") >= 0
+            ? "rgba(220,225,240,0.25)" : "rgba(255,245,220,0.18)";
+        for (let i = 0; i < 3; i++) {
+            const cx = (i * 340 + 80) % (W + 100) - 50;
+            const cy = H * (0.1 + i * 0.06);
+            const cw = 100 + i * 30;
+            ctx.fillStyle = cloudColor;
+            for (let j = 0; j < 3; j++) {
+                ctx.beginPath();
+                ctx.arc(cx + j * cw * 0.3, cy, cw * 0.22 + j * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    },
+
+    /** 远景层：山脉/城墙/树林轮廓（视差 0.4） */
+    _drawFarLayer(ctx, theme, W, H, pal) {
+        const horizonY = H * 0.5;
+        const farColor = U.shade(pal.bot, 20);
+        const farColor2 = U.shade(pal.bot, 35);
+
+        // 远山轮廓（2 层，后层更淡）
+        for (let layer = 0; layer < 2; layer++) {
+            const baseY = horizonY - layer * 20;
+            const amp = 50 + layer * 20;
+            const col = layer === 0 ? farColor2 : farColor;
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.moveTo(-20, baseY + amp);
+            for (let x = 0; x <= W + 20; x += 30) {
+                const y = baseY - Math.sin(x * 0.008 + layer * 1.3) * amp * 0.5
+                    - Math.sin(x * 0.02 + layer * 0.7) * amp * 0.3;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(W + 20, baseY + amp);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 远景装饰（按主题）
+        if (theme.indexOf("city") >= 0 || theme.indexOf("capital") >= 0 || theme === "central_capital") {
+            // 城墙轮廓
+            ctx.fillStyle = U.shade(pal.bot, 25);
+            for (let i = 0; i < 8; i++) {
+                const bx = (i * 130 + 40) % (W + 40) - 20;
+                const bh = 30 + (i % 3) * 12;
+                ctx.fillRect(bx, horizonY - bh, 24, bh + 20);
+                // 城垛
+                ctx.fillRect(bx + 2, horizonY - bh - 6, 6, 6);
+                ctx.fillRect(bx + 14, horizonY - bh - 6, 6, 6);
+            }
+        } else if (theme.indexOf("forest") >= 0 || theme.indexOf("south") >= 0) {
+            // 远景树林
+            ctx.fillStyle = U.shade(pal.bush.replace("rgba(", "").replace(")", "").split(",").slice(0, 3).join("") || "#2a4a1a", 15);
+            for (let i = 0; i < 12; i++) {
+                const tx = (i * 85 + 30) % (W + 40) - 20;
+                const th = 25 + (i % 4) * 8;
+                ctx.beginPath();
+                ctx.moveTo(tx, horizonY);
+                ctx.lineTo(tx - 12, horizonY - th * 0.4);
+                ctx.lineTo(tx - 6, horizonY - th);
+                ctx.lineTo(tx + 6, horizonY - th);
+                ctx.lineTo(tx + 12, horizonY - th * 0.4);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        // 远景雾气（融合远近层）
+        const fog = ctx.createLinearGradient(0, horizonY - 30, 0, horizonY + 30);
+        fog.addColorStop(0, "rgba(0,0,0,0)");
+        fog.addColorStop(0.5, U.shade(pal.top, 15).replace("rgb", "rgba").replace(")", ",0.15)"));
+        fog.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = fog;
+        ctx.fillRect(-20, horizonY - 30, W + 40, 60);
+    },
+
     // ============ 路径地图 ============
     drawMap(ctx, level) {
         const W = (window.Viewport && Viewport.WORLD_W) || (window.Game && Game.WORLD_W) || 960;
         const H = (window.Viewport && Viewport.WORLD_H) || (window.Game && Game.WORLD_H) || 600;
         const pal = this._mapThemePalette(level.mapTheme);
         const mapBg = window.ArtAssets ? ArtAssets.getMapBg(level.mapTheme) : null;
+
+        // 2.5D：先画视差远景层（在地图底图之前）
+        this._drawParallaxLayers(ctx, level, W, H, pal);
 
         if (mapBg) {
             Art._coverImage(ctx, mapBg, W, H);
@@ -1356,11 +1541,23 @@ window.Art = {
 
     // ============ 障碍物 ============
     drawObstacle(ctx, ob) {
+        const P = window.Projection;
+        const iso = P && P.enabled;
         ctx.save();
         ctx.translate(ob.x, ob.y);
-        // 影
+
+        // 2.5D：地面阴影
+        if (iso) P.drawShadow(ctx, 22, 8, P.SHADOW_ALPHA, 4);
+        // 原始影子
         ctx.fillStyle = "rgba(0,0,0,.4)";
         ctx.beginPath(); ctx.ellipse(0, 16, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
+
+        // 2.5D 高度抬升
+        if (iso) {
+            const colH = P.heightFor("obstacle", { kind: ob.kind });
+            ctx.translate(0, P.heightOffset(colH, 1));
+        }
+
         if (ob.kind === "barrel") {
             // 粮车
             ctx.fillStyle = "#4a3018";
@@ -1442,6 +1639,17 @@ window.Art = {
 
         ctx.save();
         ctx.translate(p.x, p.y);
+
+        // 2.5D：投射物飞行弧线高度（按飞行进度正弦起伏）
+        const P = window.Projection;
+        if (P && P.enabled) {
+            // 用 _trail 长度估算飞行进度（越短 = 越接近发射点 = 越高）
+            const tr = p._trail;
+            const flightProg = tr && tr.length > 2 ? Math.min(1, tr.length / 12) : 0.5;
+            const arcH = Math.sin(flightProg * Math.PI) * 18; // 0→18→0 弧线
+            ctx.translate(0, P.heightOffset(arcH, 1));
+        }
+
         ctx.rotate(p.angle);
         switch (p.kind) {
             case "slash": {
@@ -1534,12 +1742,20 @@ window.Art = {
     // ============ 大招特效 ============
     drawEffect(ctx, ef) {
         const t = ef.elapsed / ef.duration;
+        const P = window.Projection;
+        const iso = P && P.enabled;
         ctx.save();
         switch (ef.kind) {
-            case "flood":
-                // 沿路径绘制水流（加粗 + 光晕，缩放后仍醒目）
+            case "flood": {
+                // 2.5D 水淹七军：水位从地面向上抬升，多层水面 + 水墙侧面 + 波浪粒子
+                const waterLevel = iso ? Math.min(1, ef.elapsed / 0.8) : 0;
+                const wH = waterLevel * 40; // 世界单位高度（加大，水位更明显）
+                const liftY = iso ? P.heightOffset(wH, 1) : 0;
+
                 ctx.lineCap = "round"; ctx.lineJoin = "round";
-                ctx.strokeStyle = `rgba(40,120,220,${0.25 + 0.15 * Math.sin(ef.elapsed * 6)})`;
+
+                // 地面层：暗色深水底
+                ctx.strokeStyle = `rgba(20,60,120,${0.55 + 0.1 * waterLevel})`;
                 ctx.lineWidth = 58;
                 ctx.beginPath();
                 for (let i = 0; i < ef.path.length; i++) {
@@ -1548,22 +1764,86 @@ window.Art = {
                     else ctx.lineTo(p.x, p.y);
                 }
                 ctx.stroke();
-                ctx.strokeStyle = `rgba(80,170,255,${0.55 + 0.25 * Math.sin(ef.elapsed * 8)})`;
-                ctx.lineWidth = 44;
-                ctx.stroke();
-                ctx.strokeStyle = `rgba(200,240,255,${0.85})`;
-                ctx.lineWidth = 16;
-                ctx.stroke();
-                for (let i = 0; i < 32; i++) {
-                    const seed = (i * 53 + ef.elapsed * 120) % U.pathLength(ef.path);
-                    const pt = U.pointOnPath(ef.path, seed);
-                    const r = 4 + Math.sin(ef.elapsed * 10 + i) * 2;
-                    ctx.fillStyle = "rgba(255,255,255,.9)";
-                    ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2); ctx.fill();
+
+                if (iso) {
+                    // 2.5D 水墙侧面：从地面连到水面，形成"实际水深"的立体感
+                    if (liftY < 0) {
+                        ctx.save();
+                        ctx.fillStyle = `rgba(30,90,170,${0.35 * waterLevel})`;
+                        for (let i = 0; i < ef.path.length - 1; i++) {
+                            const a = ef.path[i], b = ef.path[i + 1];
+                            ctx.fillStyle = `rgba(30,90,170,${0.35 * waterLevel})`;
+                            ctx.beginPath();
+                            const w2 = 26;
+                            ctx.moveTo(a.x - w2, a.y);
+                            ctx.lineTo(b.x - w2, b.y);
+                            ctx.lineTo(b.x - w2 * 0.92, b.y + liftY);
+                            ctx.lineTo(a.x - w2 * 0.92, a.y + liftY);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+                        // 右侧面略暗
+                        ctx.fillStyle = `rgba(25,75,150,${0.4 * waterLevel})`;
+                        for (let i = 0; i < ef.path.length - 1; i++) {
+                            const a = ef.path[i], b = ef.path[i + 1];
+                            ctx.beginPath();
+                            const w2 = 26;
+                            ctx.moveTo(a.x + w2, a.y);
+                            ctx.lineTo(b.x + w2, b.y);
+                            ctx.lineTo(b.x + w2 * 0.92, b.y + liftY);
+                            ctx.lineTo(a.x + w2 * 0.92, a.y + liftY);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    }
+
+                    // 抬升的水面层（半透明，可见"水深"）
+                    ctx.save();
+                    ctx.translate(0, liftY);
+                    ctx.strokeStyle = `rgba(40,120,220,${0.4 + 0.15 * Math.sin(ef.elapsed * 6)})`;
+                    ctx.lineWidth = 52;
+                    ctx.stroke();
+                    ctx.strokeStyle = `rgba(80,170,255,${0.55 + 0.2 * Math.sin(ef.elapsed * 8)})`;
+                    ctx.lineWidth = 40;
+                    ctx.stroke();
+                    ctx.strokeStyle = `rgba(200,240,255,0.75)`;
+                    ctx.lineWidth = 14;
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // 水面波浪溅起粒子（在抬升高度）
+                    for (let i = 0; i < 32; i++) {
+                        const seed = (i * 53 + ef.elapsed * 120) % U.pathLength(ef.path);
+                        const pt = U.pointOnPath(ef.path, seed);
+                        const wave = Math.sin(ef.elapsed * 10 + i * 0.5) * 5;
+                        const r = 3.5 + Math.sin(ef.elapsed * 10 + i) * 2;
+                        ctx.fillStyle = "rgba(255,255,255,.9)";
+                        ctx.beginPath(); ctx.arc(pt.x, pt.y + liftY + wave, r, 0, Math.PI * 2); ctx.fill();
+                    }
+                } else {
+                    // 回退原始绘制
+                    ctx.strokeStyle = `rgba(40,120,220,${0.25 + 0.15 * Math.sin(ef.elapsed * 6)})`;
+                    ctx.lineWidth = 58;
+                    ctx.stroke();
+                    ctx.strokeStyle = `rgba(80,170,255,${0.55 + 0.25 * Math.sin(ef.elapsed * 8)})`;
+                    ctx.lineWidth = 44;
+                    ctx.stroke();
+                    ctx.strokeStyle = `rgba(200,240,255,0.85)`;
+                    ctx.lineWidth = 16;
+                    ctx.stroke();
+                    for (let i = 0; i < 32; i++) {
+                        const seed = (i * 53 + ef.elapsed * 120) % U.pathLength(ef.path);
+                        const pt = U.pointOnPath(ef.path, seed);
+                        const r = 4 + Math.sin(ef.elapsed * 10 + i) * 2;
+                        ctx.fillStyle = "rgba(255,255,255,.9)";
+                        ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2); ctx.fill();
+                    }
                 }
                 break;
+            }
             case "blaze":
-                // 火焰沿路径
+                // 2.5D 火烧赤壁：火焰沿路径蔓延 + 立体火柱向上延伸
                 for (let i = 0; i < ef.path.length - 1; i++) {
                     const a = ef.path[i], b = ef.path[i + 1];
                     const segLen = U.dist(a.x, a.y, b.x, b.y);
@@ -1572,12 +1852,36 @@ window.Art = {
                         const x = U.lerp(a.x, b.x, s / steps);
                         const y = U.lerp(a.y, b.y, s / steps);
                         const r = 20 + Math.sin(ef.elapsed * 8 + s) * 6;
+                        // 地面火光
                         const grd = ctx.createRadialGradient(x, y, 0, x, y, r);
                         grd.addColorStop(0, "rgba(255,255,180,.95)");
                         grd.addColorStop(0.4, "rgba(255,140,30,.7)");
                         grd.addColorStop(1, "rgba(180,40,0,0)");
                         ctx.fillStyle = grd;
                         ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+
+                        // 2.5D：立体火柱
+                        if (iso && s % 2 === 0) {
+                            const flameH = 55 + Math.sin(ef.elapsed * 12 + s * 0.5) * 15;
+                            const liftY = P.heightOffset(flameH, 1);
+                            const fg = ctx.createLinearGradient(x, y, x, y + liftY);
+                            fg.addColorStop(0, "rgba(255,200,60,0.18)");
+                            fg.addColorStop(0.3, "rgba(255,160,40,0.5)");
+                            fg.addColorStop(0.7, "rgba(255,100,20,0.4)");
+                            fg.addColorStop(1, "rgba(200,40,0,0)");
+                            ctx.fillStyle = fg;
+                            const fw = 16 + Math.sin(ef.elapsed * 10 + s) * 4;
+                            ctx.beginPath();
+                            ctx.moveTo(x - fw, y);
+                            ctx.quadraticCurveTo(x - fw * 0.5, y + liftY * 0.5, x, y + liftY);
+                            ctx.quadraticCurveTo(x + fw * 0.5, y + liftY * 0.5, x + fw, y);
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.fillStyle = "rgba(255,255,200,0.6)";
+                            ctx.beginPath();
+                            ctx.arc(x, y + liftY, 4, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
                     }
                 }
                 break;
@@ -1591,13 +1895,42 @@ window.Art = {
                     ctx.lineWidth = 8 - ring * 2;
                     ctx.beginPath(); ctx.arc(ef.x, ef.y, rr, 0, Math.PI * 2); ctx.stroke();
                 }
+                // 2.5D：震波穹顶 — 从地面向上隆起的半球光罩
+                if (iso) {
+                    const domeR = r * 1.0;
+                    const domeH = P.heightOffset(r * 0.45, 1);
+                    // 绘制 3 层向上叠起的上半球弧（穹顶轮廓）
+                    for (let arc = 0; arc < 3; arc++) {
+                        const lift = domeH * (0.35 + arc * 0.32);
+                        const arcScale = 1 - arc * 0.16;
+                        ctx.strokeStyle = `rgba(255,230,130,${a * (0.6 - arc * 0.15)})`;
+                        ctx.lineWidth = 5 - arc;
+                        ctx.beginPath();
+                        ctx.arc(ef.x, ef.y + lift, domeR * arcScale, Math.PI, 0); // 上半圆
+                        ctx.stroke();
+                    }
+                    // 垂直光丝（穹顶框架）
+                    ctx.strokeStyle = `rgba(255,210,120,${a * 0.4})`;
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 8; i++) {
+                        const ang = i / 8 * Math.PI;
+                        const sx = ef.x + Math.cos(ang) * domeR * 0.4;
+                        const sy = ef.y;
+                        ctx.beginPath();
+                        ctx.moveTo(sx, sy);
+                        ctx.quadraticCurveTo(sx + Math.cos(ang) * domeR * 0.2, sy + domeH * 0.5, ef.x, ef.y + domeH);
+                        ctx.stroke();
+                    }
+                }
                 ctx.fillStyle = `rgba(255,255,220,${a * 0.35})`;
                 ctx.beginPath(); ctx.arc(ef.x, ef.y, 28, 0, Math.PI * 2); ctx.fill();
                 break;
             }
             case "maze":
-                // 八阵图旋转
+                // 2.5D 八阵图：旋转阵法 + 立体光柱
                 ctx.translate(ef.x, ef.y);
+                // 地面阵法圆环
+                ctx.save();
                 ctx.rotate(ef.elapsed * 1.2);
                 for (let i = 0; i < 8; i++) {
                     const ang = i / 8 * Math.PI * 2;
@@ -1610,23 +1943,88 @@ window.Art = {
                 ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.stroke();
                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.stroke();
+                ctx.restore();
+
+                // 2.5D：8 根光柱从阵法节点向上射出
+                if (iso) {
+                    const pulse = 0.5 + 0.5 * Math.sin(ef.elapsed * 4);
+                    const pillarH = P.heightOffset(95 + pulse * 25, 1);
+                    for (let i = 0; i < 8; i++) {
+                        const ang = i / 8 * Math.PI * 2 + ef.elapsed * 0.8;
+                        const x = Math.cos(ang) * 60, y = Math.sin(ang) * 60;
+                        // 光柱本体（渐变向上渐隐，更宽更亮）
+                        const grd = ctx.createLinearGradient(x, y, x, y + pillarH);
+                        grd.addColorStop(0, `rgba(122,216,255,${0.85 + pulse * 0.15})`);
+                        grd.addColorStop(0.4, `rgba(170,235,255,${0.45 + pulse * 0.2})`);
+                        grd.addColorStop(1, "rgba(200,240,255,0)");
+                        ctx.fillStyle = grd;
+                        const pw = 12 + pulse * 4;
+                        ctx.beginPath();
+                        ctx.moveTo(x - pw, y);
+                        ctx.lineTo(x + pw, y);
+                        ctx.lineTo(x + pw * 0.5, y + pillarH);
+                        ctx.lineTo(x - pw * 0.5, y + pillarH);
+                        ctx.closePath();
+                        ctx.fill();
+                        // 光柱底部亮点
+                        ctx.fillStyle = `rgba(180,240,255,${0.7 + pulse * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
                 break;
             case "execute":
-                // 处决一击：金色十字 + 残影
-                ctx.translate(ef.x, ef.y);
-                ctx.rotate(ef.elapsed * 6);
-                ctx.strokeStyle = `rgba(255,213,90,${1 - t})`;
-                ctx.lineWidth = 6;
-                ctx.beginPath();
-                ctx.moveTo(-50, 0); ctx.lineTo(50, 0);
-                ctx.moveTo(0, -50); ctx.lineTo(0, 50);
-                ctx.stroke();
-                ctx.fillStyle = `rgba(255,255,255,${0.8 - 0.8 * t})`;
-                ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+                // 2.5D 处决一击：金色十字 + 立体光柱冲向天空
+                if (P && P.enabled) {
+                    // 立体光柱：从中点向上延伸的十字剑光
+                    ctx.save();
+                    ctx.translate(ef.x, ef.y);
+                    const colH = P.heightOffset(90 + (Math.sin(ef.elapsed * 20) * 10), 1); // 震荡上升
+                    const fg = ctx.createLinearGradient(0, 0, 0, colH);
+                    const bright = Math.max(0, 1 - t);
+                    fg.addColorStop(0, `rgba(255,230,140,${0.75 * bright})`);
+                    fg.addColorStop(0.4, `rgba(255,200,80,${0.45 * bright})`);
+                    fg.addColorStop(1, "rgba(255,180,60,0)");
+                    ctx.fillStyle = fg;
+                    // 十字光柱本体（宽阔渐细向上）
+                    const colW = 26 + Math.sin(ef.elapsed * 20) * 4;
+                    ctx.beginPath();
+                    ctx.moveTo(-colW, 10);
+                    ctx.lineTo(colW, 10);
+                    ctx.lineTo(28, colH);
+                    ctx.lineTo(-28, colH);
+                    ctx.closePath();
+                    ctx.fill();
+                    // 十字横向光刃
+                    const hw = 46;
+                    ctx.strokeStyle = `rgba(255,220,100,${0.85 * bright})`;
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(-hw, 0); ctx.lineTo(hw, 0);
+                    ctx.moveTo(0, -hw * 0.4); ctx.lineTo(0, hw * 0.4);
+                    ctx.stroke();
+                    // 核心亮点
+                    ctx.fillStyle = `rgba(255,255,255,${0.9 * bright})`;
+                    ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                } else {
+                    ctx.translate(ef.x, ef.y);
+                    ctx.rotate(ef.elapsed * 6);
+                    ctx.strokeStyle = `rgba(255,213,90,${1 - t})`;
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(-50, 0); ctx.lineTo(50, 0);
+                    ctx.moveTo(0, -50); ctx.lineTo(0, 50);
+                    ctx.stroke();
+                    ctx.fillStyle = `rgba(255,255,255,${0.8 - 0.8 * t})`;
+                    ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+                }
                 break;
             case "hex": {
+                // 2.5D 奇门阵：紫色阵法路径 + 旋转光点 + 立体光柱
                 if (ef.path) {
-                    ctx.strokeStyle = `rgba(160,100,255,${0.35 + 0.2 * Math.sin(ef.elapsed * 4)})`;
+                    ctx.strokeStyle = `rgba(160,100,255,${0.45 + 0.2 * Math.sin(ef.elapsed * 4)})`;
                     ctx.lineWidth = 36;
                     ctx.lineCap = "round";
                     ctx.beginPath();
@@ -1636,19 +2034,53 @@ window.Art = {
                         else ctx.lineTo(p.x, p.y);
                     }
                     ctx.stroke();
+                    // 阵法底部亮紫色描边（增强可见性）
+                    ctx.strokeStyle = `rgba(220,170,255,${0.3 + 0.2 * Math.sin(ef.elapsed * 5)})`;
+                    ctx.lineWidth = 14;
+                    ctx.stroke();
                 }
+                const base = (ef.path && ef.path[0]) ? ef.path[0] : { x: 480, y: 300 };
                 for (let i = 0; i < 6; i++) {
                     const ang = i / 6 * Math.PI * 2 + ef.elapsed * 0.8;
-                    const cx = (ef.path && ef.path[0]) ? ef.path[0].x + Math.cos(ang) * 80 : 0;
-                    const cy = (ef.path && ef.path[0]) ? ef.path[0].y + Math.sin(ang) * 80 : 0;
-                    ctx.fillStyle = `rgba(200,160,255,${0.35 + 0.2 * Math.sin(ef.elapsed * 5 + i)})`;
+                    const cx = base.x + Math.cos(ang) * 80;
+                    const cy = base.y + Math.sin(ang) * 80;
+                    // 地面光点
+                    ctx.fillStyle = `rgba(200,160,255,${0.45 + 0.25 * Math.sin(ef.elapsed * 5 + i)})`;
                     ctx.beginPath();
                     ctx.arc(cx, cy, 10, 0, Math.PI * 2);
                     ctx.fill();
+
+                    // 2.5D：每点向上射一道紫色光柱
+                    if (P && P.enabled) {
+                        const colH = P.heightOffset(55 + Math.sin(ef.elapsed * 6 + i) * 8, 1);
+                        const cg = ctx.createLinearGradient(cx, cy, cx, cy + colH);
+                        cg.addColorStop(0, `rgba(210,160,255,${0.7 + 0.2 * Math.sin(ef.elapsed * 5 + i)})`);
+                        cg.addColorStop(0.45, `rgba(170,120,255,${0.42 + 0.2 * Math.sin(ef.elapsed * 5 + i)})`);
+                        cg.addColorStop(1, "rgba(150,100,255,0)");
+                        ctx.fillStyle = cg;
+                        const lw = 9;
+                        ctx.beginPath();
+                        ctx.moveTo(cx - lw, cy);
+                        ctx.lineTo(cx + lw, cy);
+                        ctx.lineTo(cx + lw * 0.45, cy + colH);
+                        ctx.lineTo(cx - lw * 0.45, cy + colH);
+                        ctx.closePath();
+                        ctx.fill();
+                        // 光柱核心亮线
+                        ctx.strokeStyle = `rgba(230,200,255,${0.4 + 0.2 * Math.sin(ef.elapsed * 6 + i)})`;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy);
+                        ctx.lineTo(cx, cy + colH * 0.85);
+                        ctx.stroke();
+                    }
                 }
                 break;
             }
             case "tide": {
+                // 2.5D 潮汐涌动：潮水冲刷路径 + 动态抬升水面
+                const surge = 0.5 + 0.5 * Math.sin(ef.elapsed * 3.2); // 潮汐涨落周期
+                const tideH = iso ? P.heightOffset(16 + surge * 24, 1) : 0;
                 ctx.lineCap = "round";
                 ctx.strokeStyle = `rgba(50,140,220,${0.4 + 0.15 * Math.sin(ef.elapsed * 6)})`;
                 ctx.lineWidth = 50;
@@ -1662,6 +2094,29 @@ window.Art = {
                 ctx.strokeStyle = `rgba(180,230,255,${0.7})`;
                 ctx.lineWidth = 18;
                 ctx.stroke();
+
+                if (iso && tideH < 0) {
+                    // 潮汐抬升水层 + 前进水墙（模拟潮头）
+                    ctx.fillStyle = `rgba(40,120,210,${0.3 + surge * 0.15})`;
+                    for (let i = 0; i < ef.path.length - 1; i++) {
+                        const a = ef.path[i], b = ef.path[i + 1];
+                        ctx.beginPath();
+                        const w2 = 24;
+                        ctx.moveTo(a.x - w2, a.y); ctx.lineTo(b.x - w2, b.y);
+                        ctx.lineTo(b.x - w2 * 0.9, b.y + tideH); ctx.lineTo(a.x - w2 * 0.9, a.y + tideH);
+                        ctx.closePath(); ctx.fill();
+                    }
+                    // 浪花白沫（潮头）
+                    for (let i = 0; i < 20; i++) {
+                        const seed = (i * 61 + ef.elapsed * 100) % U.pathLength(ef.path);
+                        const pt = U.pointOnPath(ef.path, seed);
+                        const f = 0.6 + 0.4 * Math.sin(ef.elapsed * 8 + i);
+                        ctx.fillStyle = `rgba(220,245,255,${0.6 * f})`;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y + tideH + Math.sin(ef.elapsed * 6 + i) * 3, 3 + f * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
                 break;
             }
             case "rally": {
@@ -1683,6 +2138,7 @@ window.Art = {
                 for (let i = 0; i < bursts.length; i++) {
                     const b = bursts[i];
                     const r = 24 + life * 40 + pulse * 8;
+                    // 地面光圈
                     const grd = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
                     grd.addColorStop(0, `rgba(255,240,180,${0.7 * (1 - life)})`);
                     grd.addColorStop(1, "rgba(212,175,90,0)");
@@ -1690,17 +2146,44 @@ window.Art = {
                     ctx.beginPath();
                     ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
                     ctx.fill();
+
+                    // 2.5D：金色光柱从塔位向上射出
+                    if (iso) {
+                        const colH = P.heightOffset(60 + pulse * 15, 1);
+                        const cg = ctx.createLinearGradient(b.x, b.y, b.x, b.y + colH);
+                        cg.addColorStop(0, `rgba(255,230,140,${0.5 * (1 - life) + pulse * 0.2})`);
+                        cg.addColorStop(0.4, `rgba(255,210,100,${0.3 * (1 - life) + pulse * 0.15})`);
+                        cg.addColorStop(1, "rgba(255,200,80,0)");
+                        ctx.fillStyle = cg;
+                        const cw2 = 16 + pulse * 4;
+                        ctx.beginPath();
+                        ctx.moveTo(b.x - cw2, b.y);
+                        ctx.lineTo(b.x + cw2, b.y);
+                        ctx.lineTo(b.x + cw2 * 0.3, b.y + colH);
+                        ctx.lineTo(b.x - cw2 * 0.3, b.y + colH);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
                 }
                 break;
             }
             case "charge":
-                // 银影残像
+                // 2.5D 七进七出：银影残像 + 拖尾抬升
                 for (let i = 0; i < ef.trail.length; i++) {
                     const tr = ef.trail[i];
                     const a = i / ef.trail.length;
-                    ctx.fillStyle = `rgba(220,230,255,${a * 0.6})`;
-                    ctx.beginPath(); ctx.arc(tr.x, tr.y, 12 * a, 0, Math.PI * 2); ctx.fill();
+                    if (iso && i < ef.trail.length - 2) {
+                        // 残像有高度，模拟冲锋腾空
+                        const trailLift = P.heightOffset((1 - a) * 12, 1);
+                        ctx.fillStyle = `rgba(220,230,255,${a * 0.5})`;
+                        ctx.beginPath(); ctx.arc(tr.x, tr.y + trailLift, 12 * a, 0, Math.PI * 2); ctx.fill();
+                    } else {
+                        ctx.fillStyle = `rgba(220,230,255,${a * 0.6})`;
+                        ctx.beginPath(); ctx.arc(tr.x, tr.y, 12 * a, 0, Math.PI * 2); ctx.fill();
+                    }
                 }
+                // 主体（2.5D 略微抬升）
+                if (iso) ctx.translate(0, P.heightOffset(8, 1));
                 ctx.fillStyle = "#e8efff";
                 ctx.beginPath(); ctx.arc(ef.x, ef.y, 14, 0, Math.PI * 2); ctx.fill();
                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
@@ -1814,6 +2297,7 @@ window.Art = {
                     rally: [212, 180, 90]
                 };
                 const bc = burstPal[ef.ultType] || [247, 215, 116];
+                // 地面扩散环
                 const rings = 6;
                 for (let i = 0; i < rings; i++) {
                     const p = Math.min(1, life * 1.5 - i * 0.14);
@@ -1824,6 +2308,24 @@ window.Art = {
                     ctx.lineWidth = 5.5 - i * 0.65;
                     ctx.beginPath(); ctx.arc(ef.x, ef.y, rad, 0, Math.PI * 2); ctx.stroke();
                 }
+                // 2.5D：能量光柱从武将位置向上爆发
+                if (iso) {
+                    const burstH = P.heightOffset(60 + life * 40, 1);
+                    const bg = ctx.createLinearGradient(ef.x, ef.y, ef.x, ef.y + burstH);
+                    bg.addColorStop(0, `rgba(${bc[0]},${bc[1]},${bc[2]},${0.6 * (1 - life)})`);
+                    bg.addColorStop(0.5, `rgba(255,240,200,${0.35 * (1 - life)})`);
+                    bg.addColorStop(1, `rgba(${bc[0]},${bc[1]},${bc[2]},0)`);
+                    ctx.fillStyle = bg;
+                    const bw = 22 + life * 8;
+                    ctx.beginPath();
+                    ctx.moveTo(ef.x - bw, ef.y);
+                    ctx.lineTo(ef.x + bw, ef.y);
+                    ctx.lineTo(ef.x + bw * 0.2, ef.y + burstH);
+                    ctx.lineTo(ef.x - bw * 0.2, ef.y + burstH);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                // 地面核心光球
                 const grd = ctx.createRadialGradient(ef.x, ef.y, 0, ef.x, ef.y, 40 + life * 30);
                 grd.addColorStop(0, `rgba(255,255,255,${0.7 * (1 - life)})`);
                 grd.addColorStop(0.5, `rgba(255,220,120,${0.45 * (1 - life)})`);

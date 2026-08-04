@@ -688,26 +688,41 @@ window.Game = {
 
         Art.drawMap(ctx, this.level);
 
-        for (const o of this.obstacles) if (o.alive) Art.drawObstacle(ctx, o);
-
+        // 空位（无高度，画在地面上）
         for (const s of this.slots) {
             if (s.occupied) continue;
             const hov = this.mouse.hovering && this.mouse.hovering.type === "slot" && this.mouse.hovering.slot === s;
             Art.drawSlot(ctx, s, hov);
         }
 
-        for (const t of this.towers) Art.drawTower(ctx, t);
-
-        if (this.mergePickSource) {
-            const partners = this.findMergePartners(this.mergePickSource);
-            for (const p of partners) Art.drawMergeHighlight(ctx, p.x, p.y);
+        // --- 2.5D 深度排序 ---
+        // 将塔、障碍、敌人、投射物、特效合并，按 worldY 排序（y 大 = 靠近屏幕底部 = 后画）
+        // 这样近处的实体不会穿到远处实体背后
+        if (window.Projection && Projection.enabled) {
+            const queue = [];
+            for (const o of this.obstacles) if (o.alive) queue.push({ y: o.y, fn: () => Art.drawObstacle(ctx, o) });
+            for (const t of this.towers) queue.push({ y: t.y, fn: () => Art.drawTower(ctx, t) });
+            if (this.mergePickSource) {
+                const partners = this.findMergePartners(this.mergePickSource);
+                for (const p of partners) queue.push({ y: p.y, fn: () => Art.drawMergeHighlight(ctx, p.x, p.y) });
+            }
+            for (const e of this.enemies) queue.push({ y: e.y, fn: () => Art.drawEnemy(ctx, e) });
+            for (const p of this.projectiles) queue.push({ y: p.y, fn: () => Art.drawProjectile(ctx, p) });
+            for (const ef of this.effects) queue.push({ y: ef.y != null ? ef.y : 0, fn: () => Art.drawEffect(ctx, ef) });
+            queue.sort((a, b) => a.y - b.y);
+            for (const item of queue) item.fn();
+        } else {
+            // 回退：原始固定顺序
+            for (const o of this.obstacles) if (o.alive) Art.drawObstacle(ctx, o);
+            for (const t of this.towers) Art.drawTower(ctx, t);
+            if (this.mergePickSource) {
+                const partners = this.findMergePartners(this.mergePickSource);
+                for (const p of partners) Art.drawMergeHighlight(ctx, p.x, p.y);
+            }
+            for (const e of this.enemies) Art.drawEnemy(ctx, e);
+            for (const p of this.projectiles) Art.drawProjectile(ctx, p);
+            for (const ef of this.effects) Art.drawEffect(ctx, ef);
         }
-
-        for (const e of this.enemies) Art.drawEnemy(ctx, e);
-
-        for (const p of this.projectiles) Art.drawProjectile(ctx, p);
-
-        for (const ef of this.effects) Art.drawEffect(ctx, ef);
 
         if (this.selectedTower && !this.mergePickSource) {
             Art.drawRange(ctx, this.selectedTower.x, this.selectedTower.y, this.selectedTower.range);

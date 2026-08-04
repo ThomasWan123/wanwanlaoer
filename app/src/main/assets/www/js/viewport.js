@@ -18,13 +18,18 @@ window.Viewport = {
         return availW / Math.max(1, availH) >= 2.0 && availH < 520;
     },
 
+    /** 2.5D 投影 Y 压缩系数 — 全局禁用，仅用于实体级高度偏移参考 */
+    _sq() {
+        return 1; // 全局矩阵不压缩，避免 fill-pan 模式下双重变形
+    },
+
     /** 让整个 960×600 战场尽量完整落入视口 */
     fitWorldZoom(availW, availH) {
         const z = Math.min(availW / this.WORLD_W, availH / this.WORLD_H) * 0.96;
         return U.clamp(z, 0.62, 1);
     },
 
-    /** fill-pan 下 zoom 对应的可见世界高度（CSS 像素换算） */
+    /** fill-pan 下 zoom 对应的可见世界范围 */
     approxViewSize(availW, availH, zoom) {
         const lvw = this.WORLD_W / zoom;
         const lvh = this.WORLD_H / zoom;
